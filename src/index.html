@@ -35,11 +35,45 @@
 
     <!-- Layer 4: Air Mata (DI DEPAN MATA - Sesuai spesifikasi F-09) -->
     <g id="layer-tears">
-      <g id="tear-l-wrap" class="anim-tear">
-        <image id="tear-l" href="" style="display: none;" />
+      <defs>
+        <clipPath id="tear-l-clip">
+          <rect id="tear-l-clip-rect" x="110" y="207" width="135" height="280" />
+        </clipPath>
+        <clipPath id="tear-r-clip">
+          <rect id="tear-r-clip-rect" x="555" y="207" width="135" height="280" />
+        </clipPath>
+        <clipPath id="tear-l-anchor-clip">
+          <rect id="tear-l-anchor-rect" x="110" y="207" width="135" height="35" />
+        </clipPath>
+        <clipPath id="tear-r-anchor-clip">
+          <rect id="tear-r-anchor-rect" x="555" y="207" width="135" height="35" />
+        </clipPath>
+      </defs>
+
+      <!-- Air mata kiri: aliran air mengalir ke bawah -->
+      <g id="tear-l-container" clip-path="url(#tear-l-clip)">
+        <g id="tear-l-wrap" class="anim-tear">
+          <image id="tear-l-1" href="" style="display: none;" />
+          <image id="tear-l-2" href="" style="display: none;" />
+          <image id="tear-l-3" href="" style="display: none;" />
+        </g>
       </g>
-      <g id="tear-r-wrap" class="anim-tear">
-        <image id="tear-r" href="" style="display: none;" />
+      <!-- Pangkal air mata kiri (menempel di kelopak mata) -->
+      <g clip-path="url(#tear-l-anchor-clip)">
+        <image id="tear-l-anchor" href="" style="display: none;" />
+      </g>
+
+      <!-- Air mata kanan: aliran air mengalir ke bawah -->
+      <g id="tear-r-container" clip-path="url(#tear-r-clip)">
+        <g id="tear-r-wrap" class="anim-tear">
+          <image id="tear-r-1" href="" style="display: none;" />
+          <image id="tear-r-2" href="" style="display: none;" />
+          <image id="tear-r-3" href="" style="display: none;" />
+        </g>
+      </g>
+      <!-- Pangkal air mata kanan (menempel di kelopak mata) -->
+      <g clip-path="url(#tear-r-anchor-clip)">
+        <image id="tear-r-anchor" href="" style="display: none;" />
       </g>
     </g>
 

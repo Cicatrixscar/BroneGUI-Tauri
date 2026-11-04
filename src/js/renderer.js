@@ -21,8 +21,22 @@ export class Renderer {
     this.eyeR = this.svg.querySelector('#eye-r');
     this.tearLWrap = this.svg.querySelector('#tear-l-wrap');
     this.tearRWrap = this.svg.querySelector('#tear-r-wrap');
-    this.tearL = this.svg.querySelector('#tear-l');
-    this.tearR = this.svg.querySelector('#tear-r');
+    this.tearLImages = [
+      this.svg.querySelector('#tear-l-1'),
+      this.svg.querySelector('#tear-l-2'),
+      this.svg.querySelector('#tear-l-3'),
+    ];
+    this.tearRImages = [
+      this.svg.querySelector('#tear-r-1'),
+      this.svg.querySelector('#tear-r-2'),
+      this.svg.querySelector('#tear-r-3'),
+    ];
+    this.tearLAnchor = this.svg.querySelector('#tear-l-anchor');
+    this.tearRAnchor = this.svg.querySelector('#tear-r-anchor');
+    this.tearLClipRect = this.svg.querySelector('#tear-l-clip-rect');
+    this.tearRClipRect = this.svg.querySelector('#tear-r-clip-rect');
+    this.tearLAnchorRect = this.svg.querySelector('#tear-l-anchor-rect');
+    this.tearRAnchorRect = this.svg.querySelector('#tear-r-anchor-rect');
     this.effectSym = this.svg.querySelector('#effect-sym');
 
     // State render internal
@@ -71,15 +85,14 @@ export class Renderer {
       });
     }
 
-    // Animasi aliran air mata (menangis)
+    // Animasi aliran air mata (menangis): mengalir terus ke bawah (F-09)
     if (window.anime && this.tearLWrap && this.tearRWrap) {
       this.tearAnimation = window.anime({
         targets: ['#tear-l-wrap', '#tear-r-wrap'],
-        translateY: [0, 22],
-        duration: 1100,
-        direction: 'alternate',
+        translateY: [0, 250],
+        duration: 1200,
+        easing: 'linear',
         loop: true,
-        easing: 'easeInOutSine',
         autoplay: false
       });
     }
@@ -208,31 +221,85 @@ export class Renderer {
     }
 
     // 4. Update Air Mata (menangis) — DI DEPAN MATA (Layer 4)
-    if (this.tearL && this.tearR) {
+    if (this.tearLImages && this.tearRImages) {
       if (exprData.tearL && exprData.tearR) {
-        this.tearL.setAttribute('href', exprData.tearL.asset);
-        this.tearL.setAttribute('x', exprData.tearL.x);
-        this.tearL.setAttribute('y', exprData.tearL.y);
-        this.tearL.setAttribute('width', exprData.tearL.w);
-        this.tearL.setAttribute('height', exprData.tearL.h);
-        this.tearL.style.display = '';
+        const step = 250;
 
-        this.tearR.setAttribute('href', exprData.tearR.asset);
-        this.tearR.setAttribute('x', exprData.tearR.x);
-        this.tearR.setAttribute('y', exprData.tearR.y);
-        this.tearR.setAttribute('width', exprData.tearR.w);
-        this.tearR.setAttribute('height', exprData.tearR.h);
-        this.tearR.style.display = '';
+        // Sesuaikan clip rect agar air mata terpotong rapi dari kelopak mata ke bawah
+        if (this.tearLClipRect) {
+          this.tearLClipRect.setAttribute('x', exprData.tearL.x - 5);
+          this.tearLClipRect.setAttribute('y', exprData.tearL.y);
+          this.tearLClipRect.setAttribute('width', exprData.tearL.w + 10);
+        }
+        if (this.tearRClipRect) {
+          this.tearRClipRect.setAttribute('x', exprData.tearR.x - 5);
+          this.tearRClipRect.setAttribute('y', exprData.tearR.y);
+          this.tearRClipRect.setAttribute('width', exprData.tearR.w + 10);
+        }
+        if (this.tearLAnchorRect) {
+          this.tearLAnchorRect.setAttribute('x', exprData.tearL.x - 5);
+          this.tearLAnchorRect.setAttribute('y', exprData.tearL.y);
+          this.tearLAnchorRect.setAttribute('width', exprData.tearL.w + 10);
+        }
+        if (this.tearRAnchorRect) {
+          this.tearRAnchorRect.setAttribute('x', exprData.tearR.x - 5);
+          this.tearRAnchorRect.setAttribute('y', exprData.tearR.y);
+          this.tearRAnchorRect.setAttribute('width', exprData.tearR.w + 10);
+        }
+
+        // Tampilkan 3 gambar tersusun vertikal per sisi untuk aliran kontinu ke bawah
+        this.tearLImages.forEach((img, i) => {
+          if (!img) return;
+          img.setAttribute('href', exprData.tearL.asset);
+          img.setAttribute('x', exprData.tearL.x);
+          img.setAttribute('y', exprData.tearL.y - i * step);
+          img.setAttribute('width', exprData.tearL.w);
+          img.setAttribute('height', exprData.tearL.h);
+          img.style.display = '';
+        });
+
+        this.tearRImages.forEach((img, i) => {
+          if (!img) return;
+          img.setAttribute('href', exprData.tearR.asset);
+          img.setAttribute('x', exprData.tearR.x);
+          img.setAttribute('y', exprData.tearR.y - i * step);
+          img.setAttribute('width', exprData.tearR.w);
+          img.setAttribute('height', exprData.tearR.h);
+          img.style.display = '';
+        });
+
+        // Pangkal air mata di kelopak mata
+        if (this.tearLAnchor) {
+          this.tearLAnchor.setAttribute('href', exprData.tearL.asset);
+          this.tearLAnchor.setAttribute('x', exprData.tearL.x);
+          this.tearLAnchor.setAttribute('y', exprData.tearL.y);
+          this.tearLAnchor.setAttribute('width', exprData.tearL.w);
+          this.tearLAnchor.setAttribute('height', exprData.tearL.h);
+          this.tearLAnchor.style.display = '';
+        }
+        if (this.tearRAnchor) {
+          this.tearRAnchor.setAttribute('href', exprData.tearR.asset);
+          this.tearRAnchor.setAttribute('x', exprData.tearR.x);
+          this.tearRAnchor.setAttribute('y', exprData.tearR.y);
+          this.tearRAnchor.setAttribute('width', exprData.tearR.w);
+          this.tearRAnchor.setAttribute('height', exprData.tearR.h);
+          this.tearRAnchor.style.display = '';
+        }
 
         if (this.tearAnimation) {
           this.tearAnimation.restart();
           this.tearAnimation.play();
         }
       } else {
-        this.tearL.style.display = 'none';
-        this.tearR.style.display = 'none';
+        this.tearLImages.forEach(img => img && (img.style.display = 'none'));
+        this.tearRImages.forEach(img => img && (img.style.display = 'none'));
+        if (this.tearLAnchor) this.tearLAnchor.style.display = 'none';
+        if (this.tearRAnchor) this.tearRAnchor.style.display = 'none';
         if (this.tearAnimation) {
           this.tearAnimation.pause();
+          if (window.anime) {
+            window.anime.set(['#tear-l-wrap', '#tear-r-wrap'], { translateY: 0 });
+          }
         }
       }
     }
