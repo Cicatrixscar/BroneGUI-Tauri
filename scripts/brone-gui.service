@@ -1,0 +1,23 @@
+[Unit]
+Description=Brone Robot GUI Display Service
+After=network.target mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+Type=simple
+User=brone
+Environment=DISPLAY=:0
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=WEBKIT_DISABLE_DMABUF_RENDERER=1
+Environment=GDK_BACKEND=wayland,x11
+Environment=BRONE_MQTT_HOST=127.0.0.1
+Environment=BRONE_MQTT_PORT=1883
+WorkingDirectory=/home/brone/brone-gui
+ExecStart=/home/brone/brone-gui/scripts/start-kiosk.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target
+

@@ -1,0 +1,192 @@
+// Titik masuk FE. Menghubungkan config, keymap, connector, state, blink, mode, panel, dan renderer.
+import { initConnector } from './connector.js';
+import { FaceState } from './state.js';
+import { BlinkController } from './blink.js';
+import { Renderer } from './renderer.js';
+import { ModeManager } from './mode.js';
+import { ControlPanel } from './panel.js';
+
+// Fallback konfigurasi default jika file config.json gagal dibaca (AC-14.2)
+const DEFAULT_CONFIG = {
+  canvas: {
+    baseWidth: 800,
+    baseHeight: 480,
+    backgroundColor: '#CBD8E2'
+  },
+  colors: {
+    background: '#CBD8E2',
+    line: '#000000'
+  },
+  backside: {
+    asset: 'assets/BRONE_FACE_BACKSIDE.svg',
+    x: 0,
+    y: 0,
+    w: 800,
+    h: 480
+  },
+  expressions: {
+    netral: {
+      eyeL: { asset: 'assets/MATA.svg', x: 115, y: 154, w: 129, h: 171, cx: 179.5, cy: 239.5 },
+      eyeR: { asset: 'assets/MATA.svg', x: 556, y: 154, w: 129, h: 171, cx: 620.5, cy: 239.5 },
+      mouth: { asset: 'assets/IDLE.svg', x: 259, y: 325, w: 282, h: 96 }
+    },
+    senang: {
+      eyeL: { asset: 'assets/MATA.svg', x: 115, y: 154, w: 129, h: 171, cx: 179.5, cy: 239.5 },
+      eyeR: { asset: 'assets/MATA.svg', x: 556, y: 154, w: 129, h: 171, cx: 620.5, cy: 239.5 },
+      mouth: { asset: 'assets/HAPPIER.svg', x: 259, y: 286, w: 282, h: 155 }
+    },
+    sangat_senang: {
+      eyeL: { asset: 'assets/HAPPIER EYE.svg', x: 106, y: 135, w: 123, h: 143, cx: 167.5, cy: 206.5 },
+      eyeR: { asset: 'assets/HAPPIER EYE.svg', x: 575, y: 135, w: 123, h: 143, cx: 636.5, cy: 206.5 },
+      blushL: { asset: 'assets/BLUSH.svg', x: 135, y: 271, w: 61, h: 36 },
+      blushR: { asset: 'assets/BLUSH.svg', x: 604, y: 271, w: 61, h: 36 },
+      mouth: { asset: 'assets/HAPPIER.svg', x: 259, y: 286, w: 282, h: 155 }
+    },
+    sedih: {
+      eyeL: { asset: 'assets/SAD EYE LEFT.svg', x: 106, y: 147, w: 142, h: 156, cx: 177, cy: 225 },
+      eyeR: { asset: 'assets/SAD EYE RIGHT.svg', x: 552, y: 147, w: 142, h: 156, cx: 623, cy: 225 },
+      mouth: { asset: 'assets/SAD MOUTH.svg', x: 262, y: 298, w: 276, h: 86 }
+    },
+    menangis: {
+      eyeL: { asset: 'assets/CRY EYE LEFT.svg', x: 105, y: 147, w: 142, h: 145, cx: 176, cy: 219.5 },
+      eyeR: { asset: 'assets/CRY EYE RIGHT.svg', x: 553, y: 147, w: 142, h: 145, cx: 624, cy: 219.5 },
+      tearL: { asset: 'assets/DRIPPING TEARS.svg', x: 121, y: 207, w: 110, h: 273 },
+      tearR: { asset: 'assets/DRIPPING TEARS.svg', x: 569, y: 207, w: 110, h: 273 },
+      mouth: { asset: 'assets/CRY MOUTH.svg', x: 262, y: 298, w: 276, h: 86 }
+    },
+    terkejut: {
+      eyeL: { asset: 'assets/MATA.svg', x: 115, y: 154, w: 129, h: 171, cx: 179.5, cy: 239.5 },
+      eyeR: { asset: 'assets/MATA.svg', x: 556, y: 154, w: 129, h: 171, cx: 620.5, cy: 239.5 },
+      mouth: { asset: 'assets/SHOCK.svg', x: 322, y: 303, w: 156, h: 148 },
+      effect: { asset: 'assets/TANDA SERU.svg', x: 687, y: 52, w: 77, h: 88 }
+    },
+    berpikir: {
+      eyeL: { asset: 'assets/LOAD EYE.svg', x: 103, y: 167, w: 142, h: 145, cx: 174, cy: 239.5 },
+      eyeR: { asset: 'assets/MATA.svg', x: 556, y: 154, w: 129, h: 171, cx: 620.5, cy: 239.5 },
+      mouth: { asset: 'assets/LOAD MOUTH.svg', x: 264.5, y: 338, w: 271, h: 52 },
+      effect: { asset: 'assets/TANDA TANYA.svg', x: 700, y: 43, w: 60, h: 89 }
+    }
+  },
+  visemes: {
+    P_B_M: 'assets/viseme/P,B,M.svg',
+    TH: 'assets/viseme/TH.svg',
+    N_L: 'assets/viseme/N,L.svg',
+    T_D: 'assets/viseme/T,D.svg',
+    F_V: 'assets/viseme/F,V.svg',
+    K: 'assets/viseme/K.svg',
+    C_J_SY: 'assets/viseme/C,J,S,Y.svg',
+    S_Z: 'assets/viseme/S,Z.svg',
+    R: 'assets/viseme/R.svg',
+    A: 'assets/viseme/A.svg',
+    E: 'assets/viseme/E.svg',
+    I_G: 'assets/viseme/I,G.svg',
+    O: 'assets/viseme/O.svg',
+    U: 'assets/viseme/U.svg',
+    DIAM: null
+  },
+  visemePositions: {
+    A: { x: 288, y: 290, w: 224, h: 177 },
+    C_J_SY: { x: 346, y: 318, w: 108, h: 122 },
+    E: { x: 259, y: 290, w: 282, h: 155 },
+    F_V: { x: 258.5, y: 368, w: 283, h: 16 },
+    I_G: { x: 258.5, y: 352, w: 283, h: 78 },
+    K: { x: 289.5, y: 308, w: 221, h: 147 },
+    N_L: { x: 258.5, y: 318, w: 283, h: 125 },
+    O: { x: 326.5, y: 307, w: 147, h: 165 },
+    P_B_M: { x: 258.5, y: 366, w: 283, h: 20 },
+    R: { x: 277, y: 317, w: 246, h: 133 },
+    S_Z: { x: 262.5, y: 364, w: 275, h: 64 },
+    T_D: { x: 258.5, y: 318, w: 283, h: 125 },
+    TH: { x: 262.5, y: 342, w: 275, h: 72 },
+    U: { x: 356.5, y: 320, w: 87, h: 98 }
+  },
+  blink: {
+    minIntervalMs: 3000,
+    maxIntervalMs: 6000,
+    durationMs: 350
+  },
+  mode: {
+    mode_statis_aktif: true,
+    default_mode: 'dinamis',
+    lockout_duration_s: 60,
+    max_password_attempts: 3,
+    dev_fallback_password: ''
+  }
+};
+
+const DEFAULT_KEYMAP = {
+  toggleMode: 'F2',
+  togglePanel: 'F3',
+  expressions: {
+    '1': 'netral',
+    '2': 'berpikir',
+    '3': 'sedih',
+    '4': 'menangis',
+    '5': 'terkejut',
+    '6': 'senang',
+    '7': 'sangat_senang'
+  },
+  visemes: {
+    'q': 'P_B_M',
+    'w': 'TH',
+    'e': 'N_L',
+    'r': 'T_D',
+    't': 'F_V',
+    'y': 'K',
+    'u': 'C_J_SY',
+    'i': 'S_Z',
+    'o': 'R',
+    'p': 'A',
+    'a': 'E',
+    's': 'I_G',
+    'd': 'O',
+    'f': 'U',
+    'g': 'DIAM'
+  }
+};
+
+async function fetchJsonFirstAvailable(paths, fallback, name) {
+  for (const path of paths) {
+    try {
+      const res = await fetch(path);
+      if (res.ok) {
+        const json = await res.json();
+        console.info(`[${name}] Berhasil memuat dari ${path}`);
+        return json;
+      }
+    } catch {
+      // Coba path berikutnya
+    }
+  }
+  console.warn(`[${name}] Gagal memuat file eksternal, memakai nilai default.`);
+  return fallback;
+}
+
+async function initApp() {
+  const config = await fetchJsonFirstAvailable(
+    ['../config/config.json', './config/config.json', '/config/config.json'],
+    DEFAULT_CONFIG,
+    'Config'
+  );
+
+  const keymap = await fetchJsonFirstAvailable(
+    ['../config/keymap.json', './config/keymap.json', '/config/keymap.json'],
+    DEFAULT_KEYMAP,
+    'Keymap'
+  );
+
+  const faceSvg = document.getElementById('wajah');
+  const state = new FaceState(config);
+  const blink = new BlinkController(config.blink);
+  const renderer = new Renderer(faceSvg, state, blink, config);
+
+  const modeManager = new ModeManager(config, keymap, state);
+  const panel = new ControlPanel(state, modeManager, keymap);
+  modeManager.panel = panel;
+  modeManager.onModeChange = (mode) => panel.setMode(mode);
+
+  initConnector(state, modeManager);
+  renderer.start();
+}
+
+window.addEventListener('DOMContentLoaded', initApp);

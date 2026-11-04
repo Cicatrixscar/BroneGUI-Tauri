@@ -1,0 +1,25 @@
+# dependencies & build
+node_modules/
+dist/
+target/
+src-tauri/target/
+src-tauri/gen/
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# runtime & benchmark output
+benchmark/results/
+*.log
+*.csv
+
+# local & agent tools
+skills/
+.gemini/
+.env
+.env.*
+

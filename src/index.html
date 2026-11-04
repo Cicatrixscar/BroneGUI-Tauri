@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brone</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="js/lib/anime.min.js"></script>
+</head>
+<body>
+  <svg id="wajah" viewBox="0 0 800 480" preserveAspectRatio="xMidYMid meet">
+    <!-- Layer 0: Backside (Frame garis wajah & antena) -->
+    <g id="layer-backside"></g>
+
+    <!-- Layer 1: Blush pipi (di bawah mata) -->
+    <g id="layer-blush">
+      <image id="blush-l" href="" style="display: none;" />
+      <image id="blush-r" href="" style="display: none;" />
+    </g>
+
+    <!-- Layer 2: Mulut (Viseme / Ekspresi) -->
+    <g id="layer-mouth">
+      <image id="mouth" href="" />
+    </g>
+
+    <!-- Layer 3: Mata Kiri & Kanan (dengan kedip) -->
+    <g id="layer-eyes">
+      <g id="eye-l-wrap" class="anim-eye">
+        <image id="eye-l" href="" />
+      </g>
+      <g id="eye-r-wrap" class="anim-eye">
+        <image id="eye-r" href="" />
+      </g>
+    </g>
+
+    <!-- Layer 4: Air Mata (DI DEPAN MATA - Sesuai spesifikasi F-09) -->
+    <g id="layer-tears">
+      <g id="tear-l-wrap" class="anim-tear">
+        <image id="tear-l" href="" style="display: none;" />
+      </g>
+      <g id="tear-r-wrap" class="anim-tear">
+        <image id="tear-r" href="" style="display: none;" />
+      </g>
+    </g>
+
+    <!-- Layer 5: Efek Overlay (Tanda Seru / Tanda Tanya melayang) -->
+    <g id="layer-effects">
+      <image id="effect-sym" href="" style="display: none;" />
+    </g>
+  </svg>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
