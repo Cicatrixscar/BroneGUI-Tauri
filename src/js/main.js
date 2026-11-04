@@ -50,8 +50,8 @@ const DEFAULT_CONFIG = {
     menangis: {
       eyeL: { asset: 'assets/CRY EYE LEFT.svg', x: 105, y: 147, w: 142, h: 145, cx: 176, cy: 219.5 },
       eyeR: { asset: 'assets/CRY EYE RIGHT.svg', x: 553, y: 147, w: 142, h: 145, cx: 624, cy: 219.5 },
-      tearL: { asset: 'assets/DRIPPING TEARS.svg', x: 121, y: 207, w: 110, h: 273 },
-      tearR: { asset: 'assets/DRIPPING TEARS.svg', x: 569, y: 207, w: 110, h: 273 },
+      tearL: { asset: 'assets/DRIPPING TEARS.svg', x: 126, y: 242, w: 110, h: 273 },
+      tearR: { asset: 'assets/DRIPPING TEARS RIGHT.svg', x: 564, y: 242, w: 110, h: 273 },
       mouth: { asset: 'assets/CRY MOUTH.svg', x: 262, y: 298, w: 276, h: 86 }
     },
     terkejut: {
