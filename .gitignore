@@ -22,4 +22,6 @@ skills/
 .gemini/
 .env
 .env.*
+config/*.local.json
+
 

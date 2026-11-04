@@ -6,17 +6,45 @@ use tauri::command;
 pub const DEFAULT_PASSWORD: &str = "";
 
 /// Memeriksa password yang dimasukkan operator untuk beralih mode.
-/// Membaca dari environment variable BRONE_MODE_PASSWORD jika diset.
+/// Prioritas:
+/// 1. Environment variable BRONE_MODE_PASSWORD jika diset
+/// 2. File konfigurasi lokal `config/config.local.json` (git-ignored) untuk testing lokal
 pub fn check_password(input: &str) -> bool {
     if input.is_empty() {
         return false;
     }
 
-    let target = std::env::var("BRONE_MODE_PASSWORD").unwrap_or_else(|_| DEFAULT_PASSWORD.to_string());
-    if target.is_empty() {
-        return false;
+    // 1. Cek environment variable BRONE_MODE_PASSWORD jika diset
+    if let Ok(target) = std::env::var("BRONE_MODE_PASSWORD") {
+        if !target.is_empty() {
+            return input == target;
+        }
     }
-    input == target
+
+    // 2. Cek file lokal config/config.local.json untuk dev/testing lokal
+    let possible_paths = [
+        "config/config.local.json",
+        "../config/config.local.json",
+        "../../config/config.local.json",
+    ];
+
+    for path in possible_paths {
+        if let Ok(content) = std::fs::read_to_string(path) {
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(pwd) = parsed
+                    .get("mode")
+                    .and_then(|m| m.get("dev_fallback_password"))
+                    .and_then(|p| p.as_str())
+                {
+                    if !pwd.is_empty() {
+                        return input == pwd;
+                    }
+                }
+            }
+        }
+    }
+
+    false
 }
 
 #[command]
@@ -35,7 +63,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_password_benar() {
+    fn test_password_benar_env() {
         std::env::set_var("BRONE_MODE_PASSWORD", "secret123");
         assert!(check_password("secret123"));
     }

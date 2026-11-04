@@ -163,11 +163,29 @@ async function fetchJsonFirstAvailable(paths, fallback, name) {
 }
 
 async function initApp() {
-  const config = await fetchJsonFirstAvailable(
+  const baseConfig = await fetchJsonFirstAvailable(
     ['../config/config.json', './config/config.json', '/config/config.json'],
     DEFAULT_CONFIG,
     'Config'
   );
+
+  // Muat override konfigurasi lokal jika ada (config/config.local.json) untuk dev/testing lokal
+  const localConfig = await fetchJsonFirstAvailable(
+    ['../config/config.local.json', './config/config.local.json', '/config/config.local.json'],
+    null,
+    'LocalConfig'
+  );
+
+  const config = localConfig
+    ? {
+        ...baseConfig,
+        ...localConfig,
+        mode: {
+          ...baseConfig.mode,
+          ...localConfig.mode
+        }
+      }
+    : baseConfig;
 
   const keymap = await fetchJsonFirstAvailable(
     ['../config/keymap.json', './config/keymap.json', '/config/keymap.json'],
