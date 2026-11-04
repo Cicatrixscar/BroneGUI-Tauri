@@ -24,12 +24,10 @@ export class Renderer {
     this.tearLImages = [
       this.svg.querySelector('#tear-l-1'),
       this.svg.querySelector('#tear-l-2'),
-      this.svg.querySelector('#tear-l-3'),
     ];
     this.tearRImages = [
       this.svg.querySelector('#tear-r-1'),
       this.svg.querySelector('#tear-r-2'),
-      this.svg.querySelector('#tear-r-3'),
     ];
     this.effectSym = this.svg.querySelector('#effect-sym');
 
@@ -82,9 +80,9 @@ export class Renderer {
     // Animasi aliran air mata (menangis): mengalir terus ke bawah (F-09)
     if (window.anime && this.tearLWrap && this.tearRWrap) {
       this.tearAnimation = window.anime({
-        targets: ['#tear-l-wrap', '#tear-r-wrap'],
-        translateY: [0, 250],
-        duration: 1200,
+        targets: [this.tearLWrap, this.tearRWrap],
+        translateY: [0, 75],
+        duration: 700,
         easing: 'linear',
         loop: true,
         autoplay: false
@@ -217,9 +215,9 @@ export class Renderer {
     // 4. Update Air Mata (menangis) — Mengalir ke bawah dari balik mata
     if (this.tearLImages && this.tearRImages) {
       if (exprData.tearL && exprData.tearR) {
-        const step = 250;
+        const step = 75;
 
-        // Tampilkan 3 gambar tersusun vertikal per sisi untuk aliran kontinu ke bawah
+        // Tampilkan 2 gambar tersusun vertikal per sisi (offset 75px sesuai ritme highlight bulir air)
         this.tearLImages.forEach((img, i) => {
           if (!img) return;
           img.setAttribute('href', exprData.tearL.asset);
@@ -240,6 +238,10 @@ export class Renderer {
           img.style.display = '';
         });
 
+        // Aktifkan animasi aliran CSS
+        this.tearLWrap?.classList?.add('anim-tear-flowing');
+        this.tearRWrap?.classList?.add('anim-tear-flowing');
+
         if (this.tearAnimation) {
           this.tearAnimation.restart();
           this.tearAnimation.play();
@@ -247,10 +249,12 @@ export class Renderer {
       } else {
         this.tearLImages.forEach(img => img && (img.style.display = 'none'));
         this.tearRImages.forEach(img => img && (img.style.display = 'none'));
+        this.tearLWrap?.classList?.remove('anim-tear-flowing');
+        this.tearRWrap?.classList?.remove('anim-tear-flowing');
         if (this.tearAnimation) {
           this.tearAnimation.pause();
           if (window.anime) {
-            window.anime.set(['#tear-l-wrap', '#tear-r-wrap'], { translateY: 0 });
+            window.anime.set([this.tearLWrap, this.tearRWrap], { translateY: 0 });
           }
         }
       }

@@ -31,7 +31,20 @@ svg#wajah {
 }
 
 .anim-tear {
-  transform-box: fill-box;
+  will-change: transform;
+}
+
+@keyframes tearFlow {
+  0% {
+    transform: translateY(0px);
+  }
+  100% {
+    transform: translateY(75px);
+  }
+}
+
+.anim-tear-flowing {
+  animation: tearFlow 0.7s linear infinite !important;
 }
 
 /* =========================================
