@@ -65,6 +65,11 @@ const DEFAULT_CONFIG = {
       eyeR: { asset: 'assets/MATA.svg', x: 556, y: 154, w: 129, h: 171, cx: 620.5, cy: 239.5 },
       mouth: { asset: 'assets/LOAD MOUTH.svg', x: 264.5, y: 338, w: 271, h: 52 },
       effect: { asset: 'assets/TANDA TANYA.svg', x: 700, y: 43, w: 60, h: 89 }
+    },
+    timeout: {
+      eyeL: { asset: 'assets/TIMEOUT EYE LEFT.svg', x: 93.4, y: 130.65, w: 160, h: 162, cx: 177.76, cy: 214.88 },
+      eyeR: { asset: 'assets/TIMEOUT EYE RIGHT.svg', x: 547.4, y: 130.65, w: 160, h: 162, cx: 622.24, cy: 208.04 },
+      mouth: { asset: 'assets/TIMEOUT MOUTH.svg', x: 273.8, y: 355, w: 253, h: 45 }
     }
   },
   visemes: {
@@ -124,7 +129,8 @@ const DEFAULT_KEYMAP = {
     '4': 'menangis',
     '5': 'terkejut',
     '6': 'senang',
-    '7': 'sangat_senang'
+    '7': 'sangat_senang',
+    '8': 'timeout'
   },
   visemes: {
     'q': 'P_B_M',

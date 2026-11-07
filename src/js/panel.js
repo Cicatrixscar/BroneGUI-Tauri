@@ -38,7 +38,7 @@ export class ControlPanel {
       </div>
 
       <div class="panel-section">
-        <div class="section-title">Ekspresi (1–7)</div>
+        <div class="section-title">Ekspresi (1–8)</div>
         <div class="button-grid" id="expr-buttons"></div>
       </div>
 
@@ -59,7 +59,8 @@ export class ControlPanel {
       '4': 'menangis',
       '5': 'terkejut',
       '6': 'senang',
-      '7': 'sangat_senang'
+      '7': 'sangat_senang',
+      '8': 'timeout'
     };
 
     for (const [key, emosi] of Object.entries(exprMap)) {

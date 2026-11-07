@@ -28,6 +28,7 @@ Nilai `emosi`:
 | `senang` | BRONE_FACE_HAPPY | |
 | `sangat_senang` | BRONE_FACE_HAPPIER | |
 | `sangat_senang_transisi` | BRONE_FACE_HAPPIER (TRANSITION) | Sesaat, misalnya saat menyapa. Setelah `durasi_ms` habis, wajah kembali ke `sangat_senang` |
+| `timeout` | BRONE_FACE_TIMEOUT | Mata spiral & mulut bergelombang |
 
 `intensitas`: 0.0 sampai 1.0.
 

@@ -63,6 +63,11 @@
       "blushL": { "asset": "assets/BLUSH.svg", "x": 135, "y": 271, "w": 61, "h": 36 },
       "blushR": { "asset": "assets/BLUSH.svg", "x": 604, "y": 271, "w": 61, "h": 36 },
       "mouth": { "asset": "assets/IDLE.svg", "x": 259, "y": 325, "w": 282, "h": 96 }
+    },
+    "timeout": {
+      "eyeL": { "asset": "assets/TIMEOUT EYE LEFT.svg", "x": 93.4, "y": 130.65, "w": 160, "h": 162, "cx": 177.76, "cy": 214.88 },
+      "eyeR": { "asset": "assets/TIMEOUT EYE RIGHT.svg", "x": 547.4, "y": 130.65, "w": 160, "h": 162, "cx": 622.24, "cy": 208.04 },
+      "mouth": { "asset": "assets/TIMEOUT MOUTH.svg", "x": 273.8, "y": 355, "w": 253, "h": 45 }
     }
   },
   "visemes": {

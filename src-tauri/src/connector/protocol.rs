@@ -11,6 +11,7 @@ pub const VALID_EMOSI: &[&str] = &[
     "senang",
     "sangat_senang",
     "sangat_senang_transisi",
+    "timeout",
 ];
 
 pub const VALID_VISEME: &[&str] = &[

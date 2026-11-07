@@ -57,6 +57,11 @@ const mockConfig = {
       eyeL: { asset: 'assets/SAD EYE LEFT.svg', x: 106, y: 147, w: 142, h: 156 },
       eyeR: { asset: 'assets/SAD EYE RIGHT.svg', x: 552, y: 147, w: 142, h: 156 },
       mouth: { asset: 'assets/SAD MOUTH.svg', x: 262, y: 298, w: 276, h: 86 }
+    },
+    timeout: {
+      eyeL: { asset: 'assets/TIMEOUT EYE LEFT.svg', x: 93.4, y: 130.65, w: 160, h: 162 },
+      eyeR: { asset: 'assets/TIMEOUT EYE RIGHT.svg', x: 547.4, y: 130.65, w: 160, h: 162 },
+      mouth: { asset: 'assets/TIMEOUT MOUTH.svg', x: 273.8, y: 355, w: 253, h: 45 }
     }
   },
   visemes: {
@@ -190,5 +195,19 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     assert.equal(animeCalled, true, 'Animasi kedip transisi harus berjalan saat ekspresi berubah di mode statis');
     assert.equal(renderer.targetEmotion, 'sedih');
     assert.equal(renderer.isTransitioning, true);
+  });
+
+  it('Ekspresi timeout terpasang dengan aset mata spiral dan mulut bergelombang', () => {
+    delete globalThis.window.anime;
+    renderer = new Renderer(svg, state, blink, mockConfig);
+    renderer.applyState(true);
+
+    state.setEmotion('timeout');
+    renderer.applyState(false);
+
+    assert.equal(svg.querySelector('#eye-l').getAttribute('href'), 'assets/TIMEOUT EYE LEFT.svg');
+    assert.equal(svg.querySelector('#eye-r').getAttribute('href'), 'assets/TIMEOUT EYE RIGHT.svg');
+    assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/TIMEOUT MOUTH.svg');
+    assert.equal(renderer.currentEmotion, 'timeout');
   });
 });
