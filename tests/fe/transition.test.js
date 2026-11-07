@@ -17,7 +17,9 @@ function createMockSvg() {
     },
     attributes: {},
     setAttribute(k, v) { this.attributes[k] = v; },
-    getAttribute(k) { return this.attributes[k]; }
+    getAttribute(k) { return this.attributes[k]; },
+    removeAttribute(k) { delete this.attributes[k]; },
+    hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this.attributes, k); }
   });
 
   const ids = [
@@ -209,5 +211,31 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     assert.equal(svg.querySelector('#eye-r').getAttribute('href'), 'assets/TIMEOUT EYE RIGHT.svg');
     assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/TIMEOUT MOUTH.svg');
     assert.equal(renderer.currentEmotion, 'timeout');
+  });
+
+  it('Dalam ekspresi timeout, kedip acak dinonaktifkan dan mata spiral berputar', () => {
+    delete globalThis.window.anime;
+    renderer = new Renderer(svg, state, blink, mockConfig);
+    state.setEmotion('timeout');
+    renderer.applyState(true);
+
+    blink.isBlinking = true;
+    renderer.render(1000);
+
+    // Kedip acak dimatikan saat timeout
+    assert.equal(blink.isBlinking, false);
+
+    // Mata spiral diberi atribut transform rotate
+    const eyeL = svg.querySelector('#eye-l');
+    const eyeR = svg.querySelector('#eye-r');
+    assert.ok(eyeL.getAttribute('transform')?.startsWith('rotate('), 'Mata kiri harus memiliki transform rotate');
+    assert.ok(eyeR.getAttribute('transform')?.startsWith('rotate('), 'Mata kanan harus memiliki transform rotate');
+
+    // Berpindah dari timeout ke netral membersihkan transform
+    state.setEmotion('netral');
+    renderer.applyState(false);
+    renderer.render(2000);
+    assert.equal(eyeL.hasAttribute('transform'), false, 'Transform putaran mata harus dibersihkan saat kembali ke netral');
+    assert.equal(eyeR.hasAttribute('transform'), false);
   });
 });

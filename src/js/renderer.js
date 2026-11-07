@@ -110,7 +110,9 @@ export class Renderer {
 
   start() {
     this.applyState(true);
-    requestAnimationFrame(this.render);
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(this.render);
+    }
   }
 
   render(timestamp = performance.now()) {
@@ -119,8 +121,8 @@ export class Renderer {
 
     // Update controller kedip
     if (this.blinkController) {
-      if (this.isTransitioning) {
-        // Jangan jalankan kedip acak saat sedang transisi ekspresi
+      if (this.isTransitioning || this.currentEmotion === 'timeout') {
+        // Jangan jalankan kedip acak saat sedang transisi ekspresi atau dalam ekspresi timeout
         this.blinkController.isBlinking = false;
         this.blinkController.nextBlinkTime = timestamp + this.blinkController.randomDelay();
       } else {
@@ -143,11 +145,38 @@ export class Renderer {
       }
     }
 
-    requestAnimationFrame(this.render);
+    // Update putaran mata spiral khusus ekspresi timeout (berputar tanpa kedip acak)
+    if (this.currentEmotion === 'timeout' && !this.isTransitioning) {
+      const speed = 0.22; // ~79 deg/detik (~4.5 detik per rotasi 360)
+      const angle = (timestamp * speed) % 360;
+      const exprData = this.config.expressions?.timeout;
+      const cxL = exprData?.eyeL?.cx ?? 177.76;
+      const cyL = exprData?.eyeL?.cy ?? 214.88;
+      const cxR = exprData?.eyeR?.cx ?? 622.24;
+      const cyR = exprData?.eyeR?.cy ?? 208.04;
+
+      if (this.eyeL) {
+        this.eyeL.setAttribute('transform', `rotate(${angle.toFixed(2)} ${cxL} ${cyL})`);
+      }
+      if (this.eyeR) {
+        this.eyeR.setAttribute('transform', `rotate(${(-angle).toFixed(2)} ${cxR} ${cyR})`);
+      }
+    } else if (this.currentEmotion !== 'timeout') {
+      if (this.eyeL && this.eyeL.hasAttribute('transform')) {
+        this.eyeL.removeAttribute('transform');
+      }
+      if (this.eyeR && this.eyeR.hasAttribute('transform')) {
+        this.eyeR.removeAttribute('transform');
+      }
+    }
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(this.render);
+    }
   }
 
   triggerBlinkAnimation() {
-    if (this.isTransitioning) return;
+    if (this.isTransitioning || this.currentEmotion === 'timeout') return;
     this.isBlinking = true;
     if (window.anime && this.eyeLWrap && this.eyeRWrap) {
       const duration = this.config.blink?.durationMs ?? 350;
@@ -336,6 +365,9 @@ export class Renderer {
   }
 
   clearEmotionOverlays() {
+    if (this.eyeL?.hasAttribute('transform')) this.eyeL.removeAttribute('transform');
+    if (this.eyeR?.hasAttribute('transform')) this.eyeR.removeAttribute('transform');
+
     if (this.blushL) this.blushL.style.display = 'none';
     if (this.blushR) this.blushR.style.display = 'none';
 

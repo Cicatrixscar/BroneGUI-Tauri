@@ -1,10 +1,10 @@
 // Titik masuk FE. Menghubungkan config, keymap, connector, state, blink, mode, panel, dan renderer.
-import { initConnector } from './connector.js?v=timeout';
-import { FaceState } from './state.js?v=timeout';
-import { BlinkController } from './blink.js?v=timeout';
-import { Renderer } from './renderer.js?v=timeout';
-import { ModeManager } from './mode.js?v=timeout';
-import { ControlPanel } from './panel.js?v=timeout';
+import { initConnector } from './connector.js?v=timeout2';
+import { FaceState } from './state.js?v=timeout2';
+import { BlinkController } from './blink.js?v=timeout2';
+import { Renderer } from './renderer.js?v=timeout2';
+import { ModeManager } from './mode.js?v=timeout2';
+import { ControlPanel } from './panel.js?v=timeout2';
 
 // Fallback konfigurasi default jika file config.json gagal dibaca (AC-14.2)
 const DEFAULT_CONFIG = {
