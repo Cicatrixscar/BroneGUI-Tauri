@@ -1,4 +1,4 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { Renderer } from '../../src/js/renderer.js';
 import { FaceState } from '../../src/js/state.js';
@@ -83,6 +83,12 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     }
   });
 
+  afterEach(() => {
+    if (renderer?.transitionTimers) {
+      renderer.transitionTimers.forEach(id => clearTimeout(id));
+    }
+  });
+
   it('Renderer menginisialisasi ekspresi awal tanpa animasi transisi', () => {
     delete globalThis.window.anime;
     renderer = new Renderer(svg, state, blink, mockConfig);
@@ -107,24 +113,13 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     assert.equal(renderer.isTransitioning, false);
   });
 
-  it('Memanfaatkan kedipan dan mulut datar (P,B,M) dalam timeline anime.js', () => {
-    const timelineSteps = [];
-    let timelineCompleteCallback = null;
-
-    const animeMock = function() {
+  it('Memanfaatkan kedipan dan mulut datar (P,B,M) saat berganti ekspresi', (_, done) => {
+    const animeCalls = [];
+    const animeMock = function(params) {
+      animeCalls.push(params);
       return {
         restart: () => {},
         play: () => {},
-        pause: () => {}
-      };
-    };
-    animeMock.timeline = (params) => {
-      timelineCompleteCallback = params.complete;
-      return {
-        add: (step, offset) => {
-          timelineSteps.push({ step, offset });
-          return this;
-        },
         pause: () => {}
       };
     };
@@ -142,50 +137,42 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     assert.equal(renderer.targetEmotion, 'senang');
     assert.equal(renderer.isTransitioning, true);
 
-    // Verifikasi langkah-langkah timeline anime.js
-    assert.ok(timelineSteps.length >= 4, 'Timeline harus memiliki langkah mata menutup, mulut datar, dan buka kembali');
+    // Animasi kedip mata dipanggil
+    const eyeBlinkCall = animeCalls.find(c => Array.isArray(c.targets) && c.targets.includes('#eye-l-wrap'));
+    assert.ok(eyeBlinkCall, 'Harus memanggil anime untuk kedipan mata');
+    assert.deepEqual(eyeBlinkCall.scaleY[0].value, 0.04);
+    assert.deepEqual(eyeBlinkCall.scaleY[1].value, 1.0);
 
-    // Langkah 1: Mata berkedip menutup (scaleY 0.04)
-    const eyeCloseStep = timelineSteps.find(s => s.step.targets?.includes('#eye-l-wrap') && s.step.scaleY === 0.04);
-    assert.ok(eyeCloseStep, 'Harus ada animasi mata berkedip menutup ke scaleY 0.04');
+    // Animasi mulut merapat dipanggil
+    const mouthCall = animeCalls.find(c => c.targets === '#layer-mouth');
+    assert.ok(mouthCall, 'Harus memanggil anime untuk gerakan mulut merapat ke garis');
 
-    // Langkah 2: Mulut memipih ke garis datar
-    const mouthSquashStep = timelineSteps.find(s => s.step.targets === '#layer-mouth' && s.step.scaleY === 0.08);
-    assert.ok(mouthSquashStep, 'Harus ada animasi mulut memipih ke garis datar');
+    // Cek setelah tFlatten: Mulut menjadi datar (P,B,M.svg)
+    setTimeout(() => {
+      assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/viseme/P,B,M.svg');
+    }, 115);
 
-    // Jalankan callback swap mulut datar
-    mouthSquashStep.step.complete();
-    assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/viseme/P,B,M.svg');
+    // Cek setelah midpoint (t = 180ms): Saat mata terpejam di dalam kedipan, mata dan mulut sudah menjadi target (senang)
+    setTimeout(() => {
+      assert.equal(svg.querySelector('#eye-l').getAttribute('href'), 'assets/MATA.svg');
+      assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/HAPPIER.svg');
+    }, 190);
 
-    // Langkah midpoint swap: Ganti mata dan mulut ke emosi target saat tertutup
-    const midpointStep = timelineSteps.find(s => typeof s.step.complete === 'function' && s.step.duration === 1);
-    assert.ok(midpointStep, 'Harus ada step midpoint untuk swap asset');
-    midpointStep.step.complete();
-
-    // Verifikasi mata dan mulut telah diset ke senang
-    assert.equal(svg.querySelector('#eye-l').getAttribute('href'), 'assets/MATA.svg');
-    assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/HAPPIER.svg');
-
-    // Selesaikan timeline
-    timelineCompleteCallback();
-    assert.equal(renderer.currentEmotion, 'senang');
-    assert.equal(renderer.isTransitioning, false);
+    // Cek setelah selesai (t = 360ms): Mata terbuka penuh dan ekspresi baru sudah aktif
+    setTimeout(() => {
+      assert.equal(renderer.currentEmotion, 'senang');
+      assert.equal(renderer.isTransitioning, false);
+      done();
+    }, 370);
   });
 
   it('Mode statis memicu transisi yang sama saat berganti ekspresi', () => {
-    let timelineCreated = false;
-
+    let animeCalled = false;
     const animeMock = function() {
+      animeCalled = true;
       return {
         restart: () => {},
         play: () => {},
-        pause: () => {}
-      };
-    };
-    animeMock.timeline = () => {
-      timelineCreated = true;
-      return {
-        add: () => {},
         pause: () => {}
       };
     };
@@ -200,7 +187,7 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     // Simulasi klik tombol mode statis (state.setEmotion('sedih'))
     state.setEmotion('sedih');
 
-    assert.equal(timelineCreated, true, 'Transisi timeline harus berjalan saat ekspresi berubah di mode statis');
+    assert.equal(animeCalled, true, 'Animasi kedip transisi harus berjalan saat ekspresi berubah di mode statis');
     assert.equal(renderer.targetEmotion, 'sedih');
     assert.equal(renderer.isTransitioning, true);
   });
