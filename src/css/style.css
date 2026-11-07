@@ -30,6 +30,11 @@ svg#wajah {
   transform-origin: center;
 }
 
+.anim-mouth {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .anim-tear {
   will-change: transform;
 }

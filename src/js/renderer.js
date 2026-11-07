@@ -15,6 +15,7 @@ export class Renderer {
     this.blushL = this.svg.querySelector('#blush-l');
     this.blushR = this.svg.querySelector('#blush-r');
     this.mouthEl = this.svg.querySelector('#mouth');
+    this.mouthLayer = this.svg.querySelector('#layer-mouth');
     this.eyeLWrap = this.svg.querySelector('#eye-l-wrap');
     this.eyeRWrap = this.svg.querySelector('#eye-r-wrap');
     this.eyeL = this.svg.querySelector('#eye-l');
@@ -33,6 +34,9 @@ export class Renderer {
 
     // State render internal
     this.currentEmotion = null;
+    this.targetEmotion = null;
+    this.isTransitioning = false;
+    this.activeTransition = null;
     this.currentViseme = null;
     this.isBlinking = false;
     this.tearAnimation = null;
@@ -101,21 +105,27 @@ export class Renderer {
 
     // Update controller kedip
     if (this.blinkController) {
-      const factor = this.blinkController.update(timestamp);
-      this.state?.setBlinkFactor(factor);
+      if (this.isTransitioning) {
+        // Jangan jalankan kedip acak saat sedang transisi ekspresi
+        this.blinkController.isBlinking = false;
+        this.blinkController.nextBlinkTime = timestamp + this.blinkController.randomDelay();
+      } else {
+        const factor = this.blinkController.update(timestamp);
+        this.state?.setBlinkFactor(factor);
 
-      // Jika menggunakan anime.js untuk kedip
-      if (this.blinkController.isBlinking && !this.isBlinking) {
-        this.triggerBlinkAnimation();
-      } else if (!this.blinkController.isBlinking && this.isBlinking) {
-        this.isBlinking = false;
-      }
+        // Jika menggunakan anime.js untuk kedip
+        if (this.blinkController.isBlinking && !this.isBlinking) {
+          this.triggerBlinkAnimation();
+        } else if (!this.blinkController.isBlinking && this.isBlinking) {
+          this.isBlinking = false;
+        }
 
-      // Fallback jika anime.js tidak tersedia di runtime
-      if (!window.anime && this.eyeLWrap && this.eyeRWrap) {
-        const scaleY = Math.max(0.02, factor);
-        this.eyeLWrap.style.transform = `scaleY(${scaleY})`;
-        this.eyeRWrap.style.transform = `scaleY(${scaleY})`;
+        // Fallback jika anime.js tidak tersedia di runtime
+        if (!window.anime && this.eyeLWrap && this.eyeRWrap) {
+          const scaleY = Math.max(0.02, factor);
+          this.eyeLWrap.style.transform = `scaleY(${scaleY})`;
+          this.eyeRWrap.style.transform = `scaleY(${scaleY})`;
+        }
       }
     }
 
@@ -123,6 +133,7 @@ export class Renderer {
   }
 
   triggerBlinkAnimation() {
+    if (this.isTransitioning) return;
     this.isBlinking = true;
     if (window.anime && this.eyeLWrap && this.eyeRWrap) {
       const duration = this.config.blink?.durationMs ?? 350;
@@ -148,18 +159,165 @@ export class Renderer {
     const emotionChanged = force || this.currentEmotion !== emosi;
     const visemeChanged = force || this.currentViseme !== viseme;
 
-    if (emotionChanged) {
-      this.updateEmotion(emosi);
+    if (force) {
       this.currentEmotion = emosi;
+      this.targetEmotion = emosi;
+      this.isTransitioning = false;
+      this.updateEmotion(emosi);
+      this.updateMouth(emosi, viseme);
+      this.currentViseme = viseme;
+      return;
     }
 
-    if (visemeChanged || emotionChanged) {
+    if (emotionChanged) {
+      if (this.targetEmotion !== emosi) {
+        this.targetEmotion = emosi;
+        this.transitionToEmotion(emosi);
+      }
+    } else if (!this.isTransitioning && visemeChanged) {
       this.updateMouth(emosi, viseme);
       this.currentViseme = viseme;
     }
   }
 
-  updateEmotion(emosi) {
+  /**
+   * Transisi pergantian ekspresi wajah:
+   * 1. Mata berkedip menutup (scaleY -> 0.04) dan mulut merapat ke bentuk garis datar (P,B,M.svg).
+   * 2. Pada titik tengah (mata tertutup & mulut datar), asset mata & mulut diganti ke ekspresi target.
+   * 3. Mata membuka kembali ke ekspresi target dan mulut mengembang ke bentuk ekspresi target.
+   */
+  transitionToEmotion(targetEmotion) {
+    if (!window.anime) {
+      this.updateEmotion(targetEmotion);
+      this.updateMouth(targetEmotion, this.state?.viseme || 'DIAM');
+      this.currentEmotion = targetEmotion;
+      this.isTransitioning = false;
+      return;
+    }
+
+    this.isTransitioning = true;
+    if (this.blinkController) {
+      this.blinkController.isBlinking = false;
+      this.blinkController.nextBlinkTime = performance.now() + 4000;
+    }
+
+    if (this.activeTransition) {
+      try {
+        this.activeTransition.pause();
+      } catch {}
+      window.anime.remove(['#eye-l-wrap', '#eye-r-wrap', '#layer-mouth']);
+    }
+
+    const flatMouthAsset = this.config.visemes?.P_B_M || 'assets/viseme/P,B,M.svg';
+    const flatMouthPos = this.config.visemePositions?.P_B_M || { x: 258.5, y: 366, w: 283, h: 20 };
+    const targetExpr = this.config.expressions?.[targetEmotion] || this.config.expressions?.netral;
+
+    const tClose = 160;  // Durasi mata menutup & mulut memipih ke garis datar
+    const tOpen = 190;   // Durasi mata membuka & mulut mengembang ke bentuk target
+
+    const tl = window.anime.timeline({
+      easing: 'easeInOutSine',
+      complete: () => {
+        this.currentEmotion = targetEmotion;
+        this.isTransitioning = false;
+        this.activeTransition = null;
+
+        if (this.eyeLWrap && this.eyeRWrap) {
+          this.eyeLWrap.style.transform = '';
+          this.eyeRWrap.style.transform = '';
+        }
+        if (this.mouthLayer) {
+          this.mouthLayer.style.transform = '';
+          this.mouthLayer.style.opacity = '';
+        }
+      }
+    });
+
+    this.activeTransition = tl;
+
+    // FASE 1:
+    // 1. Mata berkedip menutup (scaleY 1.0 -> 0.04)
+    tl.add({
+      targets: ['#eye-l-wrap', '#eye-r-wrap'],
+      scaleY: 0.04,
+      duration: tClose,
+      easing: 'easeInOutSine'
+    }, 0);
+
+    // 2. Mulut merapat / memipih menuju garis datar
+    tl.add({
+      targets: '#layer-mouth',
+      scaleY: 0.08,
+      opacity: 0.7,
+      duration: tClose * 0.65,
+      easing: 'easeInQuad',
+      complete: () => {
+        // Tampilkan asset mulut paling datar (P,B,M.svg)
+        if (this.mouthEl) {
+          this.mouthEl.setAttribute('href', flatMouthAsset);
+          this.mouthEl.setAttribute('x', flatMouthPos.x);
+          this.mouthEl.setAttribute('y', flatMouthPos.y);
+          this.mouthEl.setAttribute('width', flatMouthPos.w);
+          this.mouthEl.setAttribute('height', flatMouthPos.h);
+          this.mouthEl.style.display = '';
+        }
+      }
+    }, 0);
+
+    // Mulut datar stabil sebelum membuka
+    tl.add({
+      targets: '#layer-mouth',
+      scaleY: 1.0,
+      opacity: 1.0,
+      duration: tClose * 0.35,
+      easing: 'easeOutQuad'
+    }, tClose * 0.65);
+
+    // TITIK TENGAH (tClose): Mata tertutup rapat, mulut datar
+    tl.add({
+      duration: 1,
+      complete: () => {
+        // Ganti asset mata ke emosi target saat mata tertutup rapat
+        this.updateEyes(targetEmotion);
+
+        // Bersihkan overlay emosi lama (air mata, blush, simbol)
+        this.clearEmotionOverlays();
+
+        // Pasang asset mulut emosi target (dimulai dari bentuk pipih 0.1)
+        if (targetExpr?.mouth && this.mouthEl) {
+          this.mouthEl.setAttribute('href', targetExpr.mouth.asset);
+          this.mouthEl.setAttribute('x', targetExpr.mouth.x);
+          this.mouthEl.setAttribute('y', targetExpr.mouth.y);
+          this.mouthEl.setAttribute('width', targetExpr.mouth.w);
+          this.mouthEl.setAttribute('height', targetExpr.mouth.h);
+          this.mouthEl.style.display = '';
+        }
+
+        // Aktifkan overlay emosi baru (blush, air mata, simbol)
+        this.updateEmotionOverlays(targetEmotion);
+      }
+    }, tClose);
+
+    // FASE 2:
+    // 3. Mata membuka kembali ke ekspresi target (scaleY 0.04 -> 1.0)
+    tl.add({
+      targets: ['#eye-l-wrap', '#eye-r-wrap'],
+      scaleY: 1.0,
+      duration: tOpen,
+      easing: 'easeOutSine'
+    }, tClose);
+
+    // 4. Mulut membuka dari garis datar ke bentuk ekspresi target
+    tl.add({
+      targets: '#layer-mouth',
+      scaleY: [0.1, 1.0],
+      opacity: [0.8, 1.0],
+      duration: tOpen,
+      easing: 'easeOutBack'
+    }, tClose);
+  }
+
+  updateEyes(emosi) {
     const exprData = this.config.expressions?.[emosi] || this.config.expressions?.netral;
     if (!exprData) return;
 
@@ -180,8 +338,38 @@ export class Renderer {
       this.eyeR.setAttribute('width', exprData.eyeR.w);
       this.eyeR.setAttribute('height', exprData.eyeR.h);
     }
+  }
 
-    // 3. Update Blush Pipi (sangat_senang)
+  clearEmotionOverlays() {
+    if (this.blushL) this.blushL.style.display = 'none';
+    if (this.blushR) this.blushR.style.display = 'none';
+
+    if (this.tearLImages && this.tearRImages) {
+      this.tearLImages.forEach(img => img && (img.style.display = 'none'));
+      this.tearRImages.forEach(img => img && (img.style.display = 'none'));
+      this.tearLWrap?.classList?.remove('anim-tear-flowing');
+      this.tearRWrap?.classList?.remove('anim-tear-flowing');
+      if (this.tearAnimation) {
+        this.tearAnimation.pause();
+        if (window.anime) {
+          window.anime.set([this.tearLWrap, this.tearRWrap], { translateY: 0 });
+        }
+      }
+    }
+
+    if (this.effectSym) {
+      this.effectSym.style.display = 'none';
+      if (this.effectAnimation) {
+        this.effectAnimation.pause();
+      }
+    }
+  }
+
+  updateEmotionOverlays(emosi) {
+    const exprData = this.config.expressions?.[emosi] || this.config.expressions?.netral;
+    if (!exprData) return;
+
+    // 1. Update Blush Pipi (sangat_senang)
     if (this.blushL && this.blushR) {
       if (exprData.blushL && exprData.blushR) {
         this.blushL.setAttribute('href', exprData.blushL.asset);
@@ -212,7 +400,7 @@ export class Renderer {
       }
     }
 
-    // 4. Update Air Mata (menangis) — Mengalir ke bawah dari balik mata
+    // 2. Update Air Mata (menangis) — Mengalir ke bawah dari balik mata
     if (this.tearLImages && this.tearRImages) {
       if (exprData.tearL && exprData.tearR) {
         const step = 75;
@@ -260,7 +448,7 @@ export class Renderer {
       }
     }
 
-    // 5. Update Efek Overlay (tanda seru / tanda tanya)
+    // 3. Update Efek Overlay (tanda seru / tanda tanya)
     if (this.effectSym) {
       if (exprData.effect) {
         this.effectSym.setAttribute('href', exprData.effect.asset);
@@ -281,6 +469,11 @@ export class Renderer {
         }
       }
     }
+  }
+
+  updateEmotion(emosi) {
+    this.updateEyes(emosi);
+    this.updateEmotionOverlays(emosi);
   }
 
   updateMouth(emosi, viseme) {
@@ -322,8 +515,8 @@ export class Renderer {
       this.mouthEl.setAttribute('height', h);
       this.mouthEl.style.display = '';
 
-      // Transisi transisi halus menggunakan anime.js
-      if (window.anime) {
+      // Transisi transisi halus menggunakan anime.js jika tidak sedang dalam transisi ekspresi
+      if (window.anime && !this.isTransitioning) {
         window.anime({
           targets: '#layer-mouth',
           scale: [0.94, 1.0],
