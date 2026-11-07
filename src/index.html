@@ -9,6 +9,17 @@
 </head>
 <body>
   <svg id="wajah" viewBox="0 0 800 480" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <!-- Clip path air mata menangis (sesuai siluet asli di BRONE_FACE_CRY.svg) -->
+      <!-- Menutupi kontur bawah mata (eyelid) agar air mata mengalir di atas garis mata tanpa menutupi pupil -->
+      <clipPath id="tear-l-clip">
+        <path d="M140.337 277.919L139.973 273.831C138.759 260.168 149.222 248.269 162.927 247.725L200.568 246.231C209.661 245.871 217.014 253.558 216.25 262.626L217.973 310.242L216.25 367.44L218.344 417.622L216.25 469.975L217.149 488.901C217.8 502.588 206.878 514.04 193.176 514.04H162.605C150.122 514.04 139.724 504.472 138.688 492.033L137.896 482.532C137.794 481.305 137.786 480.071 137.873 478.842L140.521 441.474L137.742 396.802L140.521 354.354L137.863 314.53C137.783 313.321 137.794 312.107 137.896 310.9L140.345 282.075C140.462 280.692 140.46 279.302 140.337 277.919Z" />
+      </clipPath>
+      <clipPath id="tear-r-clip">
+        <path d="M659.812 277.919L660.175 273.831C661.389 260.168 650.926 248.269 637.221 247.725L599.58 246.231C590.487 245.871 583.134 253.558 583.899 262.626L582.175 310.242L583.899 367.44L581.805 417.622L583.899 469.975L582.999 488.901C582.349 502.588 593.27 514.04 606.972 514.04H637.544C650.026 514.04 660.424 504.472 661.461 492.033L662.253 482.532C662.355 481.305 662.363 480.071 662.275 478.842L659.627 441.474L662.406 396.802L659.627 354.354L662.285 314.53C662.366 313.321 662.355 312.107 662.252 310.9L659.804 282.075C659.686 280.692 659.689 279.302 659.812 277.919Z" />
+      </clipPath>
+    </defs>
+
     <!-- Layer 0: Backside (Frame garis wajah & antena) -->
     <g id="layer-backside"></g>
 
@@ -23,25 +34,29 @@
       <image id="mouth" href="" />
     </g>
 
-    <!-- Layer 3: Air Mata (Mengalir ke bawah dari balik mata) -->
-    <g id="layer-tears">
-      <g id="tear-l-wrap" class="anim-tear">
-        <image id="tear-l-1" href="" style="display: none;" />
-        <image id="tear-l-2" href="" style="display: none;" />
-      </g>
-      <g id="tear-r-wrap" class="anim-tear">
-        <image id="tear-r-1" href="" style="display: none;" />
-        <image id="tear-r-2" href="" style="display: none;" />
-      </g>
-    </g>
-
-    <!-- Layer 4: Mata Kiri & Kanan (dengan kedip) -->
+    <!-- Layer 3: Mata Kiri & Kanan (dengan kedip) -->
     <g id="layer-eyes">
       <g id="eye-l-wrap" class="anim-eye">
         <image id="eye-l" href="" />
       </g>
       <g id="eye-r-wrap" class="anim-eye">
         <image id="eye-r" href="" />
+      </g>
+    </g>
+
+    <!-- Layer 4: Air Mata (Mengalir ke bawah membasahi mata & pipi, di atas garis mata) -->
+    <g id="layer-tears">
+      <g clip-path="url(#tear-l-clip)">
+        <g id="tear-l-wrap" class="anim-tear">
+          <image id="tear-l-1" href="" style="display: none;" />
+          <image id="tear-l-2" href="" style="display: none;" />
+        </g>
+      </g>
+      <g clip-path="url(#tear-r-clip)">
+        <g id="tear-r-wrap" class="anim-tear">
+          <image id="tear-r-1" href="" style="display: none;" />
+          <image id="tear-r-2" href="" style="display: none;" />
+        </g>
       </g>
     </g>
 
