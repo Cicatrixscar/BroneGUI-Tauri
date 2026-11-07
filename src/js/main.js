@@ -1,10 +1,10 @@
 // Titik masuk FE. Menghubungkan config, keymap, connector, state, blink, mode, panel, dan renderer.
-import { initConnector } from './connector.js';
-import { FaceState } from './state.js';
-import { BlinkController } from './blink.js';
-import { Renderer } from './renderer.js';
-import { ModeManager } from './mode.js';
-import { ControlPanel } from './panel.js';
+import { initConnector } from './connector.js?v=timeout';
+import { FaceState } from './state.js?v=timeout';
+import { BlinkController } from './blink.js?v=timeout';
+import { Renderer } from './renderer.js?v=timeout';
+import { ModeManager } from './mode.js?v=timeout';
+import { ControlPanel } from './panel.js?v=timeout';
 
 // Fallback konfigurasi default jika file config.json gagal dibaca (AC-14.2)
 const DEFAULT_CONFIG = {
@@ -154,7 +154,8 @@ const DEFAULT_KEYMAP = {
 async function fetchJsonFirstAvailable(paths, fallback, name) {
   for (const path of paths) {
     try {
-      const res = await fetch(path);
+      const url = `${path}?t=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
         console.info(`[${name}] Berhasil memuat dari ${path}`);
