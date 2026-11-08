@@ -3,11 +3,11 @@
  * CLI Tool Cepat untuk Menembak State Wajah dari Terminal
  *
  * Contoh penggunaan:
- *   node scripts/send.js sedih 4000
+ *   node scripts/send.js sad 4000
  *   node scripts/send.js timeout
- *   node scripts/send.js ekspresi senang 2000
+ *   node scripts/send.js ekspresi happy 2000
  *   node scripts/send.js viseme A
- *   node scripts/send.js '{"tipe":"ekspresi","emosi":"menangis","durasi_ms":3000}'
+ *   node scripts/send.js '{"tipe":"ekspresi","emosi":"cry","durasi_ms":3000}'
  */
 
 const args = process.argv.slice(2);
@@ -20,7 +20,7 @@ if (args.length === 0) {
   console.log(`  node scripts/send.js viseme <kode_viseme>`);
   console.log(`  node scripts/send.js '<json_payload>'`);
   console.log(`\nContoh:`);
-  console.log(`  node scripts/send.js sedih 4000`);
+  console.log(`  node scripts/send.js sad 4000`);
   console.log(`  node scripts/send.js timeout`);
   console.log(`  node scripts/send.js viseme A`);
   process.exit(0);
@@ -39,7 +39,7 @@ if (args[0].startsWith('{')) {
 } else if (args[0] === 'ekspresi' || args[0] === 'emotion') {
   payload = {
     tipe: 'ekspresi',
-    emosi: args[1] || 'netral',
+    emosi: args[1] || 'idle',
     intensitas: 1.0,
     durasi_ms: args[2] ? parseInt(args[2], 10) : undefined
   };
@@ -81,3 +81,4 @@ fetch(URL, {
     console.error(`   Pastikan server sudah jalan dengan perintah: node scripts/dev-server.js`);
     console.error(`   Detail error:`, err.message);
   });
+

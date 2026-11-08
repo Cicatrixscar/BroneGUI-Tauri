@@ -3,7 +3,7 @@
 export class FaceState {
   constructor(config = {}) {
     this.config = config;
-    this.emosi = 'netral';
+    this.emosi = 'idle';
     this.intensitas = 1.0;
     this.viseme = 'DIAM';
     this.onStateChange = null;
@@ -61,7 +61,7 @@ export class FaceState {
   }
 
   resetToIdle() {
-    this.emosi = 'netral';
+    this.emosi = 'idle';
     this.intensitas = 1.0;
     this.viseme = 'DIAM';
     this.params.eyeOpenness = 1.0;

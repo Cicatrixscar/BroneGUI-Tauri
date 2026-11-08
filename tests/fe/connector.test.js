@@ -15,7 +15,7 @@ const { initConnector } = await import('../../src/js/connector.js');
 // --- Minimal state mock ---
 function buatStateMock() {
   return {
-    emosi: 'netral',
+    emosi: 'idle',
     viseme: 'DIAM',
     setEmotion(emosi) { this.emosi = emosi; },
     setViseme(v) { this.viseme = v; },
@@ -31,18 +31,18 @@ describe('Connector — ekspresi', () => {
   it('setEmotion dipanggil saat payload ekspresi valid', (_, done) => {
     const state = buatStateMock();
     initConnector(state, modeManagerLolos);
-    window.sendBroneMessage({ tipe: 'ekspresi', emosi: 'senang', intensitas: 1.0 });
-    assert.equal(state.emosi, 'senang');
+    window.sendBroneMessage({ tipe: 'ekspresi', emosi: 'happy', intensitas: 1.0 });
+    assert.equal(state.emosi, 'happy');
     done();
   });
 
-  it('auto-reset ke netral setelah durasi_ms', (_, done) => {
+  it('auto-reset ke idle setelah durasi_ms', (_, done) => {
     const state = buatStateMock();
     initConnector(state, modeManagerLolos);
-    window.sendBroneMessage({ tipe: 'ekspresi', emosi: 'sedih', intensitas: 0.8, durasi_ms: 50 });
-    assert.equal(state.emosi, 'sedih');
+    window.sendBroneMessage({ tipe: 'ekspresi', emosi: 'sad', intensitas: 0.8, durasi_ms: 50 });
+    assert.equal(state.emosi, 'sad');
     setTimeout(() => {
-      assert.equal(state.emosi, 'netral');
+      assert.equal(state.emosi, 'idle');
       done();
     }, 100);
   });
@@ -50,8 +50,8 @@ describe('Connector — ekspresi', () => {
   it('pesan dibuang jika modeManager memblokir', (_, done) => {
     const state = buatStateMock();
     initConnector(state, modeManagerBlokir);
-    window.sendBroneMessage({ tipe: 'ekspresi', emosi: 'menangis', intensitas: 1.0 });
-    assert.equal(state.emosi, 'netral'); // tidak berubah
+    window.sendBroneMessage({ tipe: 'ekspresi', emosi: 'cry', intensitas: 1.0 });
+    assert.equal(state.emosi, 'idle'); // tidak berubah
     done();
   });
 });

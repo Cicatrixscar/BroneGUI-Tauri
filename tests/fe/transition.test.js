@@ -45,17 +45,17 @@ const mockConfig = {
   canvas: { baseWidth: 800, baseHeight: 480 },
   blink: { minIntervalMs: 3000, maxIntervalMs: 6000, durationMs: 350 },
   expressions: {
-    netral: {
+    idle: {
       eyeL: { asset: 'assets/MATA.svg', x: 115, y: 154, w: 129, h: 171 },
       eyeR: { asset: 'assets/MATA.svg', x: 556, y: 154, w: 129, h: 171 },
       mouth: { asset: 'assets/IDLE.svg', x: 259, y: 325, w: 282, h: 96 }
     },
-    senang: {
+    happy: {
       eyeL: { asset: 'assets/MATA.svg', x: 115, y: 154, w: 129, h: 171 },
       eyeR: { asset: 'assets/MATA.svg', x: 556, y: 154, w: 129, h: 171 },
       mouth: { asset: 'assets/HAPPIER.svg', x: 259, y: 286, w: 282, h: 155 }
     },
-    sedih: {
+    sad: {
       eyeL: { asset: 'assets/SAD EYE LEFT.svg', x: 106, y: 147, w: 142, h: 156 },
       eyeR: { asset: 'assets/SAD EYE RIGHT.svg', x: 552, y: 147, w: 142, h: 156 },
       mouth: { asset: 'assets/SAD MOUTH.svg', x: 262, y: 298, w: 276, h: 86 }
@@ -101,8 +101,8 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     renderer = new Renderer(svg, state, blink, mockConfig);
     renderer.applyState(true);
 
-    assert.equal(renderer.currentEmotion, 'netral');
-    assert.equal(renderer.targetEmotion, 'netral');
+    assert.equal(renderer.currentEmotion, 'idle');
+    assert.equal(renderer.targetEmotion, 'idle');
     assert.equal(renderer.isTransitioning, false);
     assert.equal(svg.querySelector('#eye-l').getAttribute('href'), 'assets/MATA.svg');
     assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/IDLE.svg');
@@ -113,8 +113,8 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     renderer = new Renderer(svg, state, blink, mockConfig);
     renderer.applyState(true);
 
-    state.setEmotion('sedih');
-    assert.equal(renderer.currentEmotion, 'sedih');
+    state.setEmotion('sad');
+    assert.equal(renderer.currentEmotion, 'sad');
     assert.equal(svg.querySelector('#eye-l').getAttribute('href'), 'assets/SAD EYE LEFT.svg');
     assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/SAD MOUTH.svg');
     assert.equal(renderer.isTransitioning, false);
@@ -136,12 +136,12 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     globalThis.window.anime = animeMock;
 
     renderer = new Renderer(svg, state, blink, mockConfig);
-    renderer.applyState(true); // Mulai dari netral
+    renderer.applyState(true); // Mulai dari idle
 
-    // Ganti ekspresi ke senang
-    state.setEmotion('senang');
+    // Ganti ekspresi ke happy
+    state.setEmotion('happy');
 
-    assert.equal(renderer.targetEmotion, 'senang');
+    assert.equal(renderer.targetEmotion, 'happy');
     assert.equal(renderer.isTransitioning, true);
 
     // Animasi kedip mata dipanggil
@@ -167,7 +167,7 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
 
     // Cek setelah selesai (t = 360ms): Mata terbuka penuh dan ekspresi baru sudah aktif
     setTimeout(() => {
-      assert.equal(renderer.currentEmotion, 'senang');
+      assert.equal(renderer.currentEmotion, 'happy');
       assert.equal(renderer.isTransitioning, false);
       done();
     }, 370);
@@ -191,11 +191,11 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     renderer = new Renderer(svg, state, blink, mockConfig);
     renderer.applyState(true);
 
-    // Simulasi klik tombol mode statis (state.setEmotion('sedih'))
-    state.setEmotion('sedih');
+    // Simulasi klik tombol mode statis (state.setEmotion('sad'))
+    state.setEmotion('sad');
 
     assert.equal(animeCalled, true, 'Animasi kedip transisi harus berjalan saat ekspresi berubah di mode statis');
-    assert.equal(renderer.targetEmotion, 'sedih');
+    assert.equal(renderer.targetEmotion, 'sad');
     assert.equal(renderer.isTransitioning, true);
   });
 
@@ -231,11 +231,11 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     assert.ok(eyeL.getAttribute('transform')?.startsWith('rotate('), 'Mata kiri harus memiliki transform rotate');
     assert.ok(eyeR.getAttribute('transform')?.startsWith('rotate('), 'Mata kanan harus memiliki transform rotate');
 
-    // Berpindah dari timeout ke netral membersihkan transform
-    state.setEmotion('netral');
+    // Berpindah dari timeout ke idle membersihkan transform
+    state.setEmotion('idle');
     renderer.applyState(false);
     renderer.render(2000);
-    assert.equal(eyeL.hasAttribute('transform'), false, 'Transform putaran mata harus dibersihkan saat kembali ke netral');
+    assert.equal(eyeL.hasAttribute('transform'), false, 'Transform putaran mata harus dibersihkan saat kembali ke idle');
     assert.equal(eyeR.hasAttribute('transform'), false);
   });
 });

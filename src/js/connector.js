@@ -1,6 +1,17 @@
 // Mendengarkan event dari BE (Tauri) dan memperbarui state (F-05, F-07).
 // Nama event dan bentuk payload mengikuti docs/CONTRACT.md.
 
+const EMOTION_ALIASES = {
+  netral: 'idle',
+  senang: 'happy',
+  sangat_senang: 'happier',
+  sedih: 'sad',
+  menangis: 'cry',
+  terkejut: 'shock',
+  berpikir: 'thinking',
+  sangat_senang_transisi: 'happier_transisi'
+};
+
 export function initConnector(state, modeManager) {
   // Timer untuk auto-reset ekspresi setelah durasi_ms habis
   let _ekspresiTimer = null;
@@ -69,7 +80,8 @@ export function initConnector(state, modeManager) {
     const { tipe } = payload;
 
     if (tipe === 'ekspresi') {
-      const { emosi, intensitas = 1.0, durasi_ms } = payload;
+      const { emosi: rawEmosi, intensitas = 1.0, durasi_ms } = payload;
+      const emosi = EMOTION_ALIASES[rawEmosi] || rawEmosi;
 
       // Batalkan timer ekspresi sebelumnya jika ada
       if (_ekspresiTimer !== null) {
@@ -79,11 +91,11 @@ export function initConnector(state, modeManager) {
 
       state.setEmotion(emosi, intensitas);
 
-      // Auto-reset ke netral setelah durasi_ms jika diset
+      // Auto-reset ke idle setelah durasi_ms jika diset
       if (typeof durasi_ms === 'number' && durasi_ms > 0) {
         _ekspresiTimer = setTimeout(() => {
           _ekspresiTimer = null;
-          state.setEmotion('netral', 1.0);
+          state.setEmotion('idle', 1.0);
         }, durasi_ms);
       }
     } else if (tipe === 'viseme') {

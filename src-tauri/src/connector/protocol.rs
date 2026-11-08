@@ -3,15 +3,25 @@
 use serde::{Deserialize, Serialize};
 
 pub const VALID_EMOSI: &[&str] = &[
+    // Nama baru (English / LLM format)
+    "idle",
+    "happy",
+    "happier",
+    "happier_transisi",
+    "sad",
+    "cry",
+    "shock",
+    "thinking",
+    "timeout",
+    // Alias lama (Indonesian) untuk kompatibilitas
     "netral",
-    "berpikir",
-    "sedih",
-    "menangis",
-    "terkejut",
     "senang",
     "sangat_senang",
     "sangat_senang_transisi",
-    "timeout",
+    "sedih",
+    "menangis",
+    "terkejut",
+    "berpikir",
 ];
 
 pub const VALID_VISEME: &[&str] = &[
@@ -96,15 +106,24 @@ mod tests {
     fn test_validasi_ekspresi() {
         let p_valid = Pesan::Ekspresi {
             id: "1".into(),
-            emosi: "senang".into(),
+            emosi: "happy".into(),
             intensitas: 0.8,
             durasi_ms: Some(2000),
         };
         assert!(validasi_pesan(&p_valid).is_ok());
 
+        // Alias lama harus tetap valid
+        let p_alias = Pesan::Ekspresi {
+            id: "1b".into(),
+            emosi: "senang".into(),
+            intensitas: 0.8,
+            durasi_ms: Some(2000),
+        };
+        assert!(validasi_pesan(&p_alias).is_ok());
+
         let p_intensitas_salah = Pesan::Ekspresi {
             id: "2".into(),
-            emosi: "senang".into(),
+            emosi: "happy".into(),
             intensitas: 1.5,
             durasi_ms: None,
         };

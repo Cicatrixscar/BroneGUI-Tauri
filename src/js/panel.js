@@ -53,13 +53,13 @@ export class ControlPanel {
     // Isi daftar tombol ekspresi
     const exprContainer = this.panelEl.querySelector('#expr-buttons');
     const exprMap = this.keymap.expressions ?? {
-      '1': 'netral',
-      '2': 'berpikir',
-      '3': 'sedih',
-      '4': 'menangis',
-      '5': 'terkejut',
-      '6': 'senang',
-      '7': 'sangat_senang',
+      '1': 'idle',
+      '2': 'thinking',
+      '3': 'sad',
+      '4': 'cry',
+      '5': 'shock',
+      '6': 'happy',
+      '7': 'happier',
       '8': 'timeout'
     };
 
