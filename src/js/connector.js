@@ -49,7 +49,16 @@ export function initConnector(state, modeManager) {
   /**
    * Handler utama untuk semua payload yang masuk dari MQTT via Tauri.
    */
-  const handlePayload = (payload) => {
+  const handlePayload = (rawPayload) => {
+    let payload = rawPayload;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch (err) {
+        console.warn('[Connector] Gagal parse string payload JSON:', err);
+        return;
+      }
+    }
     if (!payload || typeof payload !== 'object') return;
 
     // Filter pesan saat mode statis (AC-17.4)
@@ -92,11 +101,19 @@ export function initConnector(state, modeManager) {
   };
 
   // 1. Integrasi Tauri Event API jika berjalan di desktop Tauri
-  if (window.__TAURI__?.event?.listen) {
-    window.__TAURI__.event.listen('brone://ekspresi', (event) => handlePayload(event.payload));
-    window.__TAURI__.event.listen('brone://viseme', (event) => handlePayload(event.payload));
-    window.__TAURI__.event.listen('brone://bicara', (event) => handlePayload(event.payload));
-    window.__TAURI__.event.listen('brone-message', (event) => handlePayload(event.payload));
+  const tauriListen = window.__TAURI__?.event?.listen || window.__TAURI_INTERNALS__?.listen;
+  if (typeof tauriListen === 'function') {
+    const events = [
+      'brone://ekspresi', 'brone/ekspresi', 'brone:ekspresi',
+      'brone://viseme', 'brone/viseme', 'brone:viseme',
+      'brone://bicara', 'brone/bicara', 'brone:bicara',
+      'brone-message'
+    ];
+    events.forEach((evtName) => {
+      try {
+        tauriListen(evtName, (event) => handlePayload(event.payload));
+      } catch {}
+    });
   }
 
   // 2. Helper test untuk pengujian mandiri di browser (Window CustomEvent / helper global)
