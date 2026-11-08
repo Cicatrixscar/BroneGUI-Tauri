@@ -1,4 +1,4 @@
-// Panel kontrol manual untuk mode statis (F-17) dan dialog password (F-16).
+// Panel kontrol manual untuk mode statis (F-17).
 
 export class ControlPanel {
   constructor(state, modeManager, keymap = {}) {
@@ -32,8 +32,8 @@ export class ControlPanel {
       <div class="panel-header">
         <span class="panel-badge">MODE STATIS</span>
         <div class="panel-shortcuts">
-          <span><kbd>F2</kbd> Ganti Mode</span>
-          <span><kbd>F3</kbd> Sembunyikan Panel</span>
+          <span id="btn-toggle-mode" style="cursor: pointer;"><kbd>F2</kbd> Ganti Mode</span>
+          <span id="btn-toggle-panel" style="cursor: pointer;"><kbd>F3</kbd> Sembunyikan Panel</span>
         </div>
       </div>
 
@@ -108,57 +108,19 @@ export class ControlPanel {
       visemeContainer.appendChild(btn);
     }
 
-    // 2. Modal Dialog Password (F-16)
-    this.modalEl = document.createElement('div');
-    this.modalEl.id = 'password-modal';
-    this.modalEl.className = 'modal-hidden';
-    this.modalEl.innerHTML = `
-      <div class="modal-box">
-        <h3>Verifikasi Pergantian Mode</h3>
-        <p id="modal-desc">Masukkan password operator untuk beralih mode:</p>
-        <div class="input-group">
-          <input type="password" id="modal-pwd-input" autocomplete="off" placeholder="Password..." />
-        </div>
-        <div id="modal-error" class="error-msg"></div>
-        <div class="modal-actions">
-          <button id="modal-cancel-btn" class="btn-secondary">Batal (Esc)</button>
-          <button id="modal-submit-btn" class="btn-primary">Konfirmasi (Enter)</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(this.modalEl);
-
-    // Event listener modal
-    const pwdInput = this.modalEl.querySelector('#modal-pwd-input');
-    const submitBtn = this.modalEl.querySelector('#modal-submit-btn');
-    const cancelBtn = this.modalEl.querySelector('#modal-cancel-btn');
-
-    const submitAction = async () => {
-      const pwd = pwdInput.value;
-      const res = await this.modeManager.verifyPassword(pwd);
-      if (res.success) {
-        this.hidePasswordDialog();
-        await this.modeManager.switchMode();
-      } else {
-        const errorEl = this.modalEl.querySelector('#modal-error');
-        errorEl.textContent = res.error || 'Password salah';
-        pwdInput.value = '';
-        pwdInput.focus();
-      }
-    };
-
-    submitBtn.addEventListener('click', submitAction);
-    cancelBtn.addEventListener('click', () => this.hidePasswordDialog());
-
-    pwdInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        submitAction();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        this.hidePasswordDialog();
-      }
-    });
+    // Shortcut klik langsung ganti mode & sembunyikan panel
+    const toggleModeBtn = this.panelEl.querySelector('#btn-toggle-mode');
+    if (toggleModeBtn) {
+      toggleModeBtn.addEventListener('click', () => {
+        if (this.modeManager) this.modeManager.switchMode();
+      });
+    }
+    const togglePanelBtn = this.panelEl.querySelector('#btn-toggle-panel');
+    if (togglePanelBtn) {
+      togglePanelBtn.addEventListener('click', () => {
+        this.togglePanelVisibility();
+      });
+    }
 
     this.updateActiveIndicators();
   }
@@ -181,36 +143,6 @@ export class ControlPanel {
     } else {
       this.panelEl.classList.add('control-panel-hidden');
     }
-  }
-
-  showPasswordDialog() {
-    const errorEl = this.modalEl.querySelector('#modal-error');
-    errorEl.textContent = '';
-    const pwdInput = this.modalEl.querySelector('#modal-pwd-input');
-    pwdInput.value = '';
-
-    const targetMode = this.modeManager.isDynamic() ? 'Mode Statis' : 'Mode Dinamis';
-    const descEl = this.modalEl.querySelector('#modal-desc');
-    descEl.textContent = `Beralih ke ${targetMode}. Masukkan password:`;
-
-    if (this.modeManager.isLockedOut()) {
-      errorEl.textContent = `Terkunci karena 3 kali salah. Tunggu ${this.modeManager.getLockoutRemainingSeconds()} detik.`;
-      pwdInput.disabled = true;
-    } else {
-      pwdInput.disabled = false;
-    }
-
-    this.modalEl.classList.remove('modal-hidden');
-    setTimeout(() => pwdInput.focus(), 50);
-  }
-
-  hidePasswordDialog() {
-    this.modalEl.classList.add('modal-hidden');
-    const pwdInput = this.modalEl.querySelector('#modal-pwd-input');
-    pwdInput.value = '';
-    pwdInput.disabled = false; // Reset disabled state agar tidak terkunci saat dibuka lagi
-    const errorEl = this.modalEl.querySelector('#modal-error');
-    errorEl.textContent = '';
   }
 
   updateActiveIndicators() {

@@ -55,51 +55,35 @@ test('ModeManager prevents switching to static if mode_statis_aktif is false (AC
   assert.equal(manager.isDynamic(), true);
 });
 
-test('ModeManager locks out after 3 consecutive wrong passwords (AC-16.7)', async () => {
+test('ModeManager F2 keydown triggers immediate mode switch without password', async () => {
   const manager = new ModeManager({
-    mode: {
-      max_password_attempts: 3,
-      lockout_duration_s: 60,
-      dev_fallback_password: 'valid_secret'
+    mode: { default_mode: 'dinamis', mode_statis_aktif: true }
+  });
+
+  let defaultPrevented = false;
+  manager.handleKeyDown({
+    key: 'F2',
+    preventDefault: () => {
+      defaultPrevented = true;
     }
   });
 
-  // Attempt 1: wrong
-  let res = await manager.verifyPassword('wrong1');
-  assert.equal(res.success, false);
-  assert.equal(manager.isLockedOut(), false);
+  assert.equal(defaultPrevented, true);
+  assert.equal(manager.isStatic(), true);
 
-  // Attempt 2: wrong
-  res = await manager.verifyPassword('wrong2');
-  assert.equal(res.success, false);
-  assert.equal(manager.isLockedOut(), false);
-
-  // Attempt 3: wrong -> should trigger lockout
-  res = await manager.verifyPassword('wrong3');
-  assert.equal(res.success, false);
-  assert.equal(manager.isLockedOut(), true);
-  assert.ok(manager.getLockoutRemainingSeconds() > 50);
-
-  // Next attempt blocked by lockout even if password is correct
-  res = await manager.verifyPassword('valid_secret');
-  assert.equal(res.success, false);
-  assert.match(res.error, /Terkunci/);
+  // Press F2 again to switch back
+  manager.handleKeyDown({
+    key: 'F2',
+    preventDefault: () => {}
+  });
+  assert.equal(manager.isDynamic(), true);
 });
 
-test('ModeManager resets failed count after successful password', async () => {
-  const manager = new ModeManager({
-    mode: {
-      max_password_attempts: 3,
-      dev_fallback_password: 'valid_secret'
-    }
-  });
-
-  await manager.verifyPassword('wrong');
-  assert.equal(manager.failedAttempts, 1);
-
-  const res = await manager.verifyPassword('valid_secret');
+test('ModeManager verifyPassword always returns success (password disabled)', async () => {
+  const manager = new ModeManager({});
+  const res = await manager.verifyPassword('anything');
   assert.equal(res.success, true);
-  assert.equal(manager.failedAttempts, 0);
+  assert.equal(manager.isLockedOut(), false);
 });
 
 test('ModeManager discards incoming messages during static mode (AC-17.4)', () => {

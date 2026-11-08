@@ -10,14 +10,6 @@ export class ModeManager {
     this.currentMode = this.config.default_mode ?? 'dinamis'; // 'dinamis' | 'statis'
     this.staticModeAllowed = this.config.mode_statis_aktif !== false;
 
-    // Keamanan password (F-16)
-    this.maxAttempts = this.config.max_password_attempts ?? 3;
-    this.lockoutDurationMs = (this.config.lockout_duration_s ?? 60) * 1000;
-    this.failedAttempts = 0;
-    this.lockoutUntil = 0;
-
-    this.fallbackPassword = this.config.dev_fallback_password ?? 'brone';
-
     this.onModeChange = null;
     this.handleKeyDown = this.handleKeyDown.bind(this);
 
@@ -33,62 +25,15 @@ export class ModeManager {
   }
 
   isLockedOut() {
-    return Date.now() < this.lockoutUntil;
+    return false;
   }
 
   getLockoutRemainingSeconds() {
-    return Math.max(0, Math.ceil((this.lockoutUntil - Date.now()) / 1000));
+    return 0;
   }
 
-  async verifyPassword(inputPassword) {
-    if (this.isLockedOut()) {
-      return {
-        success: false,
-        error: `Terkunci karena 3 kali salah. Tunggu ${this.getLockoutRemainingSeconds()} detik.`
-      };
-    }
-
-    // Jika berjalan di dalam Tauri, kirim ke backend Rust (AC-16.9)
-    if (window.__TAURI__?.core?.invoke) {
-      try {
-        const verified = await window.__TAURI__.core.invoke('verify_mode_password', {
-          password: inputPassword
-        });
-        if (verified) {
-          this.failedAttempts = 0;
-          return { success: true };
-        }
-        // Tauri berhasil dipanggil tapi password salah — lanjutkan ke penghitungan gagal
-      } catch (err) {
-        // Error teknis Tauri (bukan salah password) — jangan naikkan failedAttempts
-        console.warn('[Mode] Error teknis saat verifikasi di Tauri, fallback ke browser check:', err);
-        // Tetap lanjutkan ke fallback browser di bawah
-      }
-    }
-
-    // Fallback dev browser (juga dipakai jika Tauri error teknis)
-    if (inputPassword === this.fallbackPassword) {
-      this.failedAttempts = 0;
-      return { success: true };
-    }
-
-    // Password salah (AC-16.7)
-    this.failedAttempts += 1;
-    console.warn(`[Mode] Percobaan password salah (${this.failedAttempts}/${this.maxAttempts})`);
-
-    if (this.failedAttempts >= this.maxAttempts) {
-      this.lockoutUntil = Date.now() + this.lockoutDurationMs;
-      console.warn(`[Mode] F2 dikunci selama ${this.lockoutDurationMs / 1000} detik.`);
-      return {
-        success: false,
-        error: `3 kali salah berturut-turut. F2 dikunci selama ${this.config.lockout_duration_s ?? 60} detik.`
-      };
-    }
-
-    return {
-      success: false,
-      error: `Password salah. Sisa percobaan: ${this.maxAttempts - this.failedAttempts}`
-    };
+  async verifyPassword(_inputPassword) {
+    return { success: true };
   }
 
   async switchMode() {
@@ -128,13 +73,7 @@ export class ModeManager {
   handleKeyDown(event) {
     const key = event.key;
 
-    // Jika modal password sedang terbuka, jangan ganggu input apapun (kecuali F2 itu sendiri tidak relevan)
-    // Biarkan browser menangani semua keydown di dalam modal
-    if (this.panel && !this.panel.modalEl?.classList.contains('modal-hidden')) {
-      return;
-    }
-
-    // F2: Buka dialog password untuk ganti mode (F-16)
+    // F2: Langsung ganti mode (dinamis <-> statis) tanpa password
     const toggleModeKey = this.keymap.toggleMode ?? 'F2';
     if (key === toggleModeKey) {
       event.preventDefault();
@@ -142,9 +81,7 @@ export class ModeManager {
         alert('Mode statis dinonaktifkan dalam konfigurasi (mode_statis_aktif: false).');
         return;
       }
-      if (this.panel) {
-        this.panel.showPasswordDialog();
-      }
+      this.switchMode();
       return;
     }
 

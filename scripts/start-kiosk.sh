@@ -9,11 +9,9 @@ set -e
 export WEBKIT_DISABLE_DMABUF_RENDERER=1
 export GDK_BACKEND=wayland,x11
 
-# 2. Konfigurasi MQTT Broker & Auth
+# 2. Konfigurasi MQTT Broker
 export BRONE_MQTT_HOST="${BRONE_MQTT_HOST:-127.0.0.1}"
 export BRONE_MQTT_PORT="${BRONE_MQTT_PORT:-1883}"
-# Set password operator via env var BRONE_MODE_PASSWORD
-export BRONE_MODE_PASSWORD="${BRONE_MODE_PASSWORD:-}"
 
 # 3. Direktori aplikasi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

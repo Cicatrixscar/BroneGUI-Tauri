@@ -112,10 +112,7 @@ const DEFAULT_CONFIG = {
   },
   mode: {
     mode_statis_aktif: true,
-    default_mode: 'dinamis',
-    lockout_duration_s: 60,
-    max_password_attempts: 3,
-    dev_fallback_password: ''
+    default_mode: 'dinamis'
   }
 };
 
