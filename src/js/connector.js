@@ -119,4 +119,20 @@ export function initConnector(state, modeManager) {
   // 2. Helper test untuk pengujian mandiri di browser (Window CustomEvent / helper global)
   window.addEventListener('brone:message', (event) => handlePayload(event.detail));
   window.sendBroneMessage = (payload) => handlePayload(payload);
+
+  // 3. Jembatan SSE saat berjalan di mode Web browser (Dev Server)
+  if (!window.__TAURI__ && typeof EventSource !== 'undefined') {
+    try {
+      const sse = new EventSource('/events');
+      sse.onmessage = (event) => {
+        if (!event.data) return;
+        try {
+          const parsed = JSON.parse(event.data);
+          if (parsed && !parsed.connected) {
+            handlePayload(parsed);
+          }
+        } catch {}
+      };
+    } catch {}
+  }
 }
