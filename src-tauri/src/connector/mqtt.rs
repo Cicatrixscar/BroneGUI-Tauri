@@ -86,11 +86,10 @@ pub async fn start_mqtt_client(app_handle: AppHandle, config: MqttConfig) {
 
                             let val = serde_json::to_value(&pesan).unwrap_or_default();
                             
-                            // Emit ke event spesifik dan event umum
+                            // Emit ke event spesifik sesuai tipe pesan ke Frontend
                             if let Err(e) = app_handle.emit(event_name, &val) {
                                 error!("[Tauri IPC] Gagal memancarkan event '{}': {}", event_name, e);
                             }
-                            let _ = app_handle.emit("brone-message", &val);
                         }
                         Err(e) => {
                             warn!("[MQTT] Gagal parse JSON dari topik '{}': {} (payload: {})", publish.topic, e, payload_str);

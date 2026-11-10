@@ -93,6 +93,11 @@ const DEFAULT_CONFIG = {
       blushR: { asset: 'assets/BLUSH.svg', x: 604, y: 271, w: 61, h: 36 },
       mouth: { asset: 'assets/HAPPIER.svg', x: 259, y: 286, w: 282, h: 155 }
     },
+    sangat_senang_transisi: {
+      eyeL: { asset: 'assets/MATA HAPPIER TRANSITION.svg', x: 95.4, y: 159.3, w: 156, h: 153, cx: 173.4, cy: 235.8 },
+      eyeR: { asset: 'assets/MATA HAPPIER TRANSITION KANAN.svg', x: 549, y: 159.3, w: 156, h: 153, cx: 627, cy: 235.8 },
+      mouth: { asset: 'assets/HAPPIER.svg', x: 259, y: 286, w: 282, h: 155 }
+    },
     sedih: {
       eyeL: { asset: 'assets/SAD EYE LEFT.svg', x: 106, y: 147, w: 142, h: 156, cx: 177, cy: 225 },
       eyeR: { asset: 'assets/SAD EYE RIGHT.svg', x: 552, y: 147, w: 142, h: 156, cx: 623, cy: 225 },
@@ -220,14 +225,14 @@ async function fetchJsonFirstAvailable(paths, fallback, name) {
 
 async function initApp() {
   const baseConfig = await fetchJsonFirstAvailable(
-    ['../config/config.json', './config/config.json', '/config/config.json'],
+    ['./config/config.json', '/config/config.json', '../config/config.json'],
     DEFAULT_CONFIG,
     'Config'
   );
 
   // Muat override konfigurasi lokal jika ada (config/config.local.json) untuk dev/testing lokal
   const localConfig = await fetchJsonFirstAvailable(
-    ['../config/config.local.json', './config/config.local.json', '/config/config.local.json'],
+    ['./config/config.local.json', '/config/config.local.json', '../config/config.local.json'],
     null,
     'LocalConfig'
   );
@@ -244,7 +249,7 @@ async function initApp() {
     : baseConfig;
 
   const keymap = await fetchJsonFirstAvailable(
-    ['../config/keymap.json', './config/keymap.json', '/config/keymap.json'],
+    ['./config/keymap.json', '/config/keymap.json', '../config/keymap.json'],
     DEFAULT_KEYMAP,
     'Keymap'
   );

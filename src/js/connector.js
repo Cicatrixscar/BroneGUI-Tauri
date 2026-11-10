@@ -17,6 +17,9 @@ export function initConnector(state, modeManager) {
   let _ekspresiTimer = null;
   // Timer untuk viseme scheduler
   let _visemeTimers = [];
+  // Buffer deduplikasi pesan identik yang tiba beruntun (< 30ms)
+  let _lastMsgStr = '';
+  let _lastMsgTime = 0;
 
   /**
    * Membatalkan semua timer viseme yang sedang aktif.
@@ -71,6 +74,15 @@ export function initConnector(state, modeManager) {
       }
     }
     if (!payload || typeof payload !== 'object') return;
+
+    // Deduplikasi jika pesan identik tiba ganda dalam kurun < 30ms (mencegah trigger ganda)
+    const payloadStr = JSON.stringify(payload);
+    const now = performance.now();
+    if (payloadStr === _lastMsgStr && (now - _lastMsgTime) < 30) {
+      return;
+    }
+    _lastMsgStr = payloadStr;
+    _lastMsgTime = now;
 
     // Filter pesan saat mode statis (AC-17.4)
     if (modeManager && !modeManager.handleIncomingMessage(payload)) {
