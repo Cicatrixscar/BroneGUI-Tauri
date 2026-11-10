@@ -370,18 +370,6 @@ export class Renderer {
     if (this.eyeL?.hasAttribute('transform')) this.eyeL.removeAttribute('transform');
     if (this.eyeR?.hasAttribute('transform')) this.eyeR.removeAttribute('transform');
 
-    // Reset flip CSS pada eyeRWrap (akan diset ulang oleh updateEyes jika ekspresi target punya flipH)
-    if (this._eyeRFlipped && this.eyeRWrap) {
-      this.eyeRWrap.style.transform = '';
-      this._eyeRFlipped = false;
-    }
-
-    // Reset flip CSS pada eyeRWrap (akan diset ulang oleh updateEyes jika ekspresi target punya flipH)
-    if (this._eyeRFlipped && this.eyeRWrap) {
-      this.eyeRWrap.style.transform = '';
-      this._eyeRFlipped = false;
-    }
-
     if (this.blushL) this.blushL.style.display = 'none';
     if (this.blushR) this.blushR.style.display = 'none';
 

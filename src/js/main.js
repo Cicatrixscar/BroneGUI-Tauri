@@ -43,10 +43,8 @@ const DEFAULT_CONFIG = {
       mouth: { asset: 'assets/HAPPIER.svg', x: 259, y: 286, w: 282, h: 155 }
     },
     happier_transisi: {
-      eyeL: { asset: 'assets/MATA HAPPIER TRANSITION.svg', x: 106, y: 135, w: 123, h: 143, cx: 167.5, cy: 206.5 },
-      eyeR: { asset: 'assets/MATA HAPPIER TRANSITION KANAN.svg', x: 575, y: 135, w: 123, h: 143, cx: 636.5, cy: 206.5 },
-      blushL: { asset: 'assets/BLUSH.svg', x: 135, y: 271, w: 61, h: 36 },
-      blushR: { asset: 'assets/BLUSH.svg', x: 604, y: 271, w: 61, h: 36 },
+      eyeL: { asset: 'assets/MATA HAPPIER TRANSITION.svg', x: 95.4, y: 159.3, w: 156, h: 153, cx: 173.4, cy: 235.8 },
+      eyeR: { asset: 'assets/MATA HAPPIER TRANSITION KANAN.svg', x: 549, y: 159.3, w: 156, h: 153, cx: 627, cy: 235.8 },
       mouth: { asset: 'assets/HAPPIER.svg', x: 259, y: 286, w: 282, h: 155 }
     },
     sad: {
