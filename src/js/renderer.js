@@ -140,7 +140,10 @@ export class Renderer {
         if (!window.anime && this.eyeLWrap && this.eyeRWrap) {
           const scaleY = Math.max(0.02, factor);
           this.eyeLWrap.style.transform = `scaleY(${scaleY})`;
-          this.eyeRWrap.style.transform = `scaleY(${scaleY})`;
+          // Pertahankan flip horizontal jika aktif
+          this.eyeRWrap.style.transform = this._eyeRFlipped
+            ? `scaleX(-1) scaleY(${scaleY})`
+            : `scaleY(${scaleY})`;
         }
       }
     }
@@ -332,7 +335,8 @@ export class Renderer {
 
       if (this.eyeLWrap && this.eyeRWrap) {
         this.eyeLWrap.style.transform = '';
-        this.eyeRWrap.style.transform = '';
+        // Pertahankan flip horizontal jika ekspresi target punya flipH
+        this.eyeRWrap.style.transform = this._eyeRFlipped ? 'scaleX(-1)' : '';
       }
       if (this.mouthLayer) {
         this.mouthLayer.style.transform = '';
@@ -364,20 +368,33 @@ export class Renderer {
       this.eyeR.setAttribute('height', exprData.eyeR.h);
 
       // Flip horizontal mata kanan jika config memintanya (misalnya happier_transisi)
+      // Pakai CSS transform pada eyeRWrap agar tidak bertabrakan dengan clearEmotionOverlays
       if (exprData.eyeR.flipH) {
-        const cx = exprData.eyeR.x + exprData.eyeR.w / 2;
-        const cy = exprData.eyeR.y + exprData.eyeR.h / 2;
-        this.eyeR.setAttribute('transform', `scale(-1,1) translate(${-(2 * cx)},0)`);
-      } else if (!exprData.eyeR.keepTransform) {
+        if (this.eyeRWrap) {
+          // scaleX(-1) di dalam wrap: flip konten, blink scaleY tetap bisa jalan
+          this.eyeRWrap.style.transform = 'scaleX(-1)';
+          this._eyeRFlipped = true;
+        }
+      } else {
         // Bersihkan flip jika ekspresi sebelumnya pakai flipH
-        this.eyeR.removeAttribute('transform');
+        if (this._eyeRFlipped && this.eyeRWrap) {
+          this.eyeRWrap.style.transform = '';
+          this._eyeRFlipped = false;
+        }
       }
     }
   }
 
   clearEmotionOverlays() {
+    // Hapus transform rotasi timeout dari elemen mata (bukan flip — flip ada di eyeRWrap CSS)
     if (this.eyeL?.hasAttribute('transform')) this.eyeL.removeAttribute('transform');
     if (this.eyeR?.hasAttribute('transform')) this.eyeR.removeAttribute('transform');
+
+    // Reset flip CSS pada eyeRWrap (akan diset ulang oleh updateEyes jika ekspresi target punya flipH)
+    if (this._eyeRFlipped && this.eyeRWrap) {
+      this.eyeRWrap.style.transform = '';
+      this._eyeRFlipped = false;
+    }
 
     if (this.blushL) this.blushL.style.display = 'none';
     if (this.blushR) this.blushR.style.display = 'none';
