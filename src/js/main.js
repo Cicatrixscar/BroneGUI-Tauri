@@ -268,6 +268,7 @@ async function initApp() {
   renderer.start();
 
   // Pasang event listener kontrol jendela (tombol fullscreen & tutup pojok kanan atas)
+  const winControls = document.getElementById('window-controls');
   const btnFs = document.getElementById('btn-fullscreen');
   if (btnFs) {
     btnFs.addEventListener('click', () => toggleFullscreen());
@@ -276,6 +277,30 @@ async function initApp() {
   if (btnClose) {
     btnClose.addEventListener('click', () => closeApplication());
   }
+
+  // Auto-hide kontrol jendela agar wajah robot tetap bersih 100%
+  // Tombol hanya muncul jika kursor mouse atau sentuhan berada di 80px area atas layar
+  let _controlsTimer = null;
+  const showControlsTemporarily = () => {
+    if (!winControls) return;
+    winControls.classList.add('visible');
+    clearTimeout(_controlsTimer);
+    _controlsTimer = setTimeout(() => {
+      winControls.classList.remove('visible');
+    }, 2500);
+  };
+
+  window.addEventListener('mousemove', (e) => {
+    if (e.clientY < 80) {
+      showControlsTemporarily();
+    }
+  });
+
+  window.addEventListener('touchstart', (e) => {
+    if (e.touches?.[0]?.clientY < 80) {
+      showControlsTemporarily();
+    }
+  }, { passive: true });
 
   // Shortcut keyboard: F11 untuk Layar Penuh/Jendela, Escape / Ctrl+Q untuk Tutup
   window.addEventListener('keydown', (e) => {

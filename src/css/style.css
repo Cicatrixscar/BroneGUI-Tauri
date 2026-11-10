@@ -175,7 +175,7 @@ kbd {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Kontrol Jendela (Fullscreen & Tutup) di pojok kanan atas */
+/* Kontrol Jendela (Fullscreen & Tutup) di pojok kanan atas — Auto-Hide agar tidak mengganggu wajah robot */
 #window-controls {
   position: fixed;
   top: 14px;
@@ -184,12 +184,18 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
-  opacity: 0.65;
-  transition: opacity 0.25s ease;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
+/* Muncul hanya saat kursor didekatkan ke pojok kanan atas atau sedang disentuh */
+#window-controls.visible,
 #window-controls:hover {
   opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 #window-controls button {
