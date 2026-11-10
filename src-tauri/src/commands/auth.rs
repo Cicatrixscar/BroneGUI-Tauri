@@ -12,6 +12,11 @@ pub fn verify_mode_password(_password: Option<String>) -> bool {
     true
 }
 
+#[command]
+pub fn exit_app(app_handle: tauri::AppHandle) {
+    app_handle.exit(0);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

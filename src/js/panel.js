@@ -1,5 +1,17 @@
 // Panel kontrol manual untuk mode statis (F-17).
 
+export function closeApplication() {
+  if (window.__TAURI__?.core?.invoke) {
+    window.__TAURI__.core.invoke('exit_app');
+  } else if (window.__TAURI__?.invoke) {
+    window.__TAURI__.invoke('exit_app');
+  } else if (window.__TAURI_INTERNALS__?.invoke) {
+    window.__TAURI_INTERNALS__.invoke('exit_app');
+  } else {
+    window.close();
+  }
+}
+
 export class ControlPanel {
   constructor(state, modeManager, keymap = {}) {
     this.state = state;
@@ -34,6 +46,7 @@ export class ControlPanel {
         <div class="panel-shortcuts">
           <span id="btn-toggle-mode" style="cursor: pointer;"><kbd>F2</kbd> Ganti Mode</span>
           <span id="btn-toggle-panel" style="cursor: pointer;"><kbd>F3</kbd> Sembunyikan Panel</span>
+          <span id="btn-exit-app" style="cursor: pointer; color: #ff8b8b;"><kbd>Esc</kbd> Keluar</span>
         </div>
       </div>
 
@@ -120,6 +133,13 @@ export class ControlPanel {
     if (togglePanelBtn) {
       togglePanelBtn.addEventListener('click', () => {
         this.togglePanelVisibility();
+      });
+    }
+
+    const exitBtn = this.panelEl.querySelector('#btn-exit-app');
+    if (exitBtn) {
+      exitBtn.addEventListener('click', () => {
+        closeApplication();
       });
     }
 

@@ -4,7 +4,7 @@ import { FaceState } from './state.js?v=timeout2';
 import { BlinkController } from './blink.js?v=timeout2';
 import { Renderer } from './renderer.js?v=timeout2';
 import { ModeManager } from './mode.js?v=timeout2';
-import { ControlPanel } from './panel.js?v=timeout2';
+import { ControlPanel, closeApplication } from './panel.js?v=timeout2';
 
 // Fallback konfigurasi default jika file config.json gagal dibaca (AC-14.2)
 const DEFAULT_CONFIG = {
@@ -266,6 +266,13 @@ async function initApp() {
 
   initConnector(state, modeManager);
   renderer.start();
+
+  // Shortcut keluar dari aplikasi (Escape atau Ctrl+Q) agar tidak terkunci di layar
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || (e.ctrlKey && e.key.toLowerCase() === 'q')) {
+      closeApplication();
+    }
+  });
 }
 
 window.addEventListener('DOMContentLoaded', initApp);
