@@ -25,7 +25,6 @@ impl Default for MqttConfig {
                 "brone/face/ekspresi".into(),
                 "brone/face/viseme".into(),
                 "brone/face/bicara".into(),
-                "brone/face/+".into(),
             ],
         }
     }

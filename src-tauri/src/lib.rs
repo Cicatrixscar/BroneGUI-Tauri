@@ -27,7 +27,6 @@ pub fn run() {
                     "brone/face/ekspresi".to_string(),
                     "brone/face/viseme".to_string(),
                     "brone/face/bicara".to_string(),
-                    "brone/face/+".to_string(),
                 ],
             };
 
