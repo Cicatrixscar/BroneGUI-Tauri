@@ -300,11 +300,12 @@ export class Renderer {
     // 3. TITIK TENGAH (t = half, ~175ms): Mata tertutup rapat, mulut datar
     // Saat mata terpejam di dalam kedipan: Ganti mata & mulut ke ekspresi target!
     const timer2 = setTimeout(() => {
-      // Ganti asset mata ke ekspresi target saat mata sedang tertutup rapat
-      this.updateEyes(targetEmotion);
-
-      // Bersihkan overlay emosi lama (air mata, blush, simbol)
+      // Bersihkan overlay emosi lama (air mata, blush, simbol) DULU sebelum update mata
       this.clearEmotionOverlays();
+
+      // Ganti asset mata ke ekspresi target saat mata sedang tertutup rapat
+      // (dipanggil SETELAH clearEmotionOverlays agar transform flipH tidak ikut terhapus)
+      this.updateEyes(targetEmotion);
 
       // Ganti mulut ke ekspresi target
       this.updateMouth(targetEmotion, 'DIAM');
