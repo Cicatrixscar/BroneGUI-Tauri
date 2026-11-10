@@ -361,6 +361,16 @@ export class Renderer {
       this.eyeR.setAttribute('y', exprData.eyeR.y);
       this.eyeR.setAttribute('width', exprData.eyeR.w);
       this.eyeR.setAttribute('height', exprData.eyeR.h);
+
+      // Flip horizontal mata kanan jika config memintanya (misalnya happier_transisi)
+      if (exprData.eyeR.flipH) {
+        const cx = exprData.eyeR.x + exprData.eyeR.w / 2;
+        const cy = exprData.eyeR.y + exprData.eyeR.h / 2;
+        this.eyeR.setAttribute('transform', `scale(-1,1) translate(${-(2 * cx)},0)`);
+      } else if (!exprData.eyeR.keepTransform) {
+        // Bersihkan flip jika ekspresi sebelumnya pakai flipH
+        this.eyeR.removeAttribute('transform');
+      }
     }
   }
 
