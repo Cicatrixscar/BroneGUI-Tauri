@@ -60,7 +60,8 @@ export class ControlPanel {
       '5': 'shock',
       '6': 'happy',
       '7': 'happier',
-      '8': 'timeout'
+      '8': 'timeout',
+      '9': 'happier_transisi'
     };
 
     for (const [key, emosi] of Object.entries(exprMap)) {

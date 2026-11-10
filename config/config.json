@@ -58,11 +58,11 @@
       "effect": { "asset": "assets/TANDA TANYA.svg", "x": 700, "y": 43, "w": 60, "h": 89 }
     },
     "happier_transisi": {
-      "eyeL": { "asset": "assets/HAPPIER EYE.svg", "x": 106, "y": 135, "w": 123, "h": 143, "cx": 167.5, "cy": 206.5 },
-      "eyeR": { "asset": "assets/HAPPIER EYE.svg", "x": 575, "y": 135, "w": 123, "h": 143, "cx": 636.5, "cy": 206.5 },
+      "eyeL": { "asset": "assets/MATA HAPPIER TRANSITION.svg", "x": 106, "y": 135, "w": 123, "h": 143, "cx": 167.5, "cy": 206.5 },
+      "eyeR": { "asset": "assets/MATA HAPPIER TRANSITION.svg", "x": 575, "y": 135, "w": 123, "h": 143, "cx": 636.5, "cy": 206.5 },
       "blushL": { "asset": "assets/BLUSH.svg", "x": 135, "y": 271, "w": 61, "h": 36 },
       "blushR": { "asset": "assets/BLUSH.svg", "x": 604, "y": 271, "w": 61, "h": 36 },
-      "mouth": { "asset": "assets/IDLE.svg", "x": 259, "y": 325, "w": 282, "h": 96 }
+      "mouth": { "asset": "assets/HAPPIER.svg", "x": 259, "y": 286, "w": 282, "h": 155 }
     },
     "timeout": {
       "eyeL": { "asset": "assets/TIMEOUT EYE LEFT.svg", "x": 93.4, "y": 130.65, "w": 160, "h": 162, "cx": 177.76, "cy": 214.88 },

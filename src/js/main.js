@@ -42,6 +42,13 @@ const DEFAULT_CONFIG = {
       blushR: { asset: 'assets/BLUSH.svg', x: 604, y: 271, w: 61, h: 36 },
       mouth: { asset: 'assets/HAPPIER.svg', x: 259, y: 286, w: 282, h: 155 }
     },
+    happier_transisi: {
+      eyeL: { asset: 'assets/MATA HAPPIER TRANSITION.svg', x: 106, y: 135, w: 123, h: 143, cx: 167.5, cy: 206.5 },
+      eyeR: { asset: 'assets/MATA HAPPIER TRANSITION.svg', x: 575, y: 135, w: 123, h: 143, cx: 636.5, cy: 206.5 },
+      blushL: { asset: 'assets/BLUSH.svg', x: 135, y: 271, w: 61, h: 36 },
+      blushR: { asset: 'assets/BLUSH.svg', x: 604, y: 271, w: 61, h: 36 },
+      mouth: { asset: 'assets/HAPPIER.svg', x: 259, y: 286, w: 282, h: 155 }
+    },
     sad: {
       eyeL: { asset: 'assets/SAD EYE LEFT.svg', x: 106, y: 147, w: 142, h: 156, cx: 177, cy: 225 },
       eyeR: { asset: 'assets/SAD EYE RIGHT.svg', x: 552, y: 147, w: 142, h: 156, cx: 623, cy: 225 },
@@ -173,7 +180,8 @@ const DEFAULT_KEYMAP = {
     '5': 'shock',
     '6': 'happy',
     '7': 'happier',
-    '8': 'timeout'
+    '8': 'timeout',
+    '9': 'happier_transisi'
   },
   visemes: {
     'q': 'P_B_M',
