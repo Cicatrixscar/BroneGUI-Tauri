@@ -1,7 +1,7 @@
 pub mod commands;
 pub mod connector;
 
-use commands::auth::{exit_app, verify_mode_password};
+use commands::auth::{exit_app, is_fullscreen, toggle_fullscreen, verify_mode_password};
 use connector::mqtt::{start_mqtt_client, MqttConfig};
 use log::info;
 use tauri::Manager;
@@ -38,7 +38,12 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![verify_mode_password, exit_app])
+        .invoke_handler(tauri::generate_handler![
+            verify_mode_password,
+            exit_app,
+            toggle_fullscreen,
+            is_fullscreen
+        ])
         .run(tauri::generate_context!())
         .expect("Gagal menjalankan aplikasi Tauri");
 }

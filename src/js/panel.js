@@ -12,6 +12,46 @@ export function closeApplication() {
   }
 }
 
+export async function toggleFullscreen() {
+  const enterIcon = document.getElementById('icon-fs-enter');
+  const exitIcon = document.getElementById('icon-fs-exit');
+
+  const updateIcon = (isFs) => {
+    if (enterIcon && exitIcon) {
+      enterIcon.style.display = isFs ? 'none' : '';
+      exitIcon.style.display = isFs ? '' : 'none';
+    }
+  };
+
+  const invokeTauri = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+  if (typeof invokeTauri === 'function') {
+    try {
+      const isFs = await invokeTauri('toggle_fullscreen');
+      updateIcon(isFs);
+      return;
+    } catch (e) {
+      console.warn('[Fullscreen] Gagal panggil invoke Tauri:', e);
+    }
+  }
+
+  // Fallback Web Browser Fullscreen API
+  try {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+      updateIcon(true);
+    } else {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+      updateIcon(false);
+    }
+  } catch (err) {
+    console.warn('[Fullscreen] Gagal toggle browser fullscreen:', err);
+  }
+}
+
 export class ControlPanel {
   constructor(state, modeManager, keymap = {}) {
     this.state = state;
@@ -46,6 +86,7 @@ export class ControlPanel {
         <div class="panel-shortcuts">
           <span id="btn-toggle-mode" style="cursor: pointer;"><kbd>F2</kbd> Ganti Mode</span>
           <span id="btn-toggle-panel" style="cursor: pointer;"><kbd>F3</kbd> Sembunyikan Panel</span>
+          <span id="btn-toggle-fs" style="cursor: pointer;"><kbd>F11</kbd> Layar Penuh</span>
           <span id="btn-exit-app" style="cursor: pointer; color: #ff8b8b;"><kbd>Esc</kbd> Keluar</span>
         </div>
       </div>
@@ -133,6 +174,13 @@ export class ControlPanel {
     if (togglePanelBtn) {
       togglePanelBtn.addEventListener('click', () => {
         this.togglePanelVisibility();
+      });
+    }
+
+    const toggleFsBtn = this.panelEl.querySelector('#btn-toggle-fs');
+    if (toggleFsBtn) {
+      toggleFsBtn.addEventListener('click', () => {
+        toggleFullscreen();
       });
     }
 

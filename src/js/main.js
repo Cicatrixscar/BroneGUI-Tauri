@@ -4,7 +4,7 @@ import { FaceState } from './state.js?v=timeout2';
 import { BlinkController } from './blink.js?v=timeout2';
 import { Renderer } from './renderer.js?v=timeout2';
 import { ModeManager } from './mode.js?v=timeout2';
-import { ControlPanel, closeApplication } from './panel.js?v=timeout2';
+import { ControlPanel, closeApplication, toggleFullscreen } from './panel.js?v=timeout2';
 
 // Fallback konfigurasi default jika file config.json gagal dibaca (AC-14.2)
 const DEFAULT_CONFIG = {
@@ -267,9 +267,22 @@ async function initApp() {
   initConnector(state, modeManager);
   renderer.start();
 
-  // Shortcut keluar dari aplikasi (Escape atau Ctrl+Q) agar tidak terkunci di layar
+  // Pasang event listener kontrol jendela (tombol fullscreen & tutup pojok kanan atas)
+  const btnFs = document.getElementById('btn-fullscreen');
+  if (btnFs) {
+    btnFs.addEventListener('click', () => toggleFullscreen());
+  }
+  const btnClose = document.getElementById('btn-close-app');
+  if (btnClose) {
+    btnClose.addEventListener('click', () => closeApplication());
+  }
+
+  // Shortcut keyboard: F11 untuk Layar Penuh/Jendela, Escape / Ctrl+Q untuk Tutup
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' || (e.ctrlKey && e.key.toLowerCase() === 'q')) {
+    if (e.key === 'F11') {
+      e.preventDefault();
+      toggleFullscreen();
+    } else if (e.key === 'Escape' || (e.ctrlKey && e.key.toLowerCase() === 'q')) {
       closeApplication();
     }
   });

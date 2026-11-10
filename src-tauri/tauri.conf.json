@@ -16,9 +16,9 @@
         "title": "Brone",
         "width": 1024,
         "height": 600,
-        "fullscreen": true,
-        "resizable": false,
-        "decorations": false,
+        "fullscreen": false,
+        "resizable": true,
+        "decorations": true,
         "backgroundColor": "#CBD8E2"
       }
     ],
