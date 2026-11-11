@@ -113,14 +113,22 @@ export class ModeManager {
       return;
     }
 
-    // Pilihan viseme: Q, W, E, ... (huruf kecil atau besar)
+    // Pilihan viseme: A, I, U, E, O, R (REST), D (DIAM)
     const visemeMap = this.keymap.visemes ?? {};
     const lowerKey = key.toLowerCase();
-    if (visemeMap[lowerKey]) {
+    const targetViseme = visemeMap[lowerKey] || (
+      lowerKey === 'a' ? 'A' :
+      lowerKey === 'i' ? 'I' :
+      lowerKey === 'u' ? 'U' :
+      lowerKey === 'e' ? 'E' :
+      lowerKey === 'o' ? 'O' :
+      (lowerKey === 'r' || lowerKey === 'p' || lowerKey === 'm' || lowerKey === 'b') ? 'REST' :
+      (lowerKey === 'd' || lowerKey === 'g') ? 'DIAM' : null
+    );
+    if (targetViseme) {
       event.preventDefault();
-      const viseme = visemeMap[lowerKey];
       if (this.state) {
-        this.state.setViseme(viseme);
+        this.state.setViseme(targetViseme);
       }
       return;
     }

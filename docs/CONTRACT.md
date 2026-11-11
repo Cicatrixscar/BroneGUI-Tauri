@@ -51,23 +51,19 @@ Efek (air mata, tanda seru, tanda tanya) mengikuti ekspresi. Tidak ada field efe
 
 `v`:
 
-| Nilai | Gambar acuan |
+### Viseme Dinamis Inti (Vokal + REST)
+
+| Nilai | Keterangan & Karakteristik |
 |---|---|
-| `P_B_M` | VISIME_P, B, M |
-| `TH` | VISEME_TH |
-| `N_L` | VISEME_N (L masuk ke kelompok ini) |
-| `T_D` | VISEME_T,D |
-| `F_V` | VISEME_TH-1 |
-| `K` | VISEME_K |
-| `C_J_SY` | VISEME_C, J, S, Y |
-| `S_Z` | VISEME_S,Z |
-| `R` | VISEME_R |
-| `A` | VISEME_A |
-| `E` | VISEME_E |
-| `I_G` | VISEME_I (G masuk ke kelompok ini) |
-| `O` | VISEME_O |
-| `U` | VISEME_U |
-| `DIAM` | Mulut dari BRONE_FACE_BASE (mulut diam) |
+| `A` | Vokal A (mulut terbuka lebar vertikal) |
+| `I` | Vokal I (mulut melebar pipih horizontal) |
+| `U` | Vokal U (mulut mengerucut bulat kecil) |
+| `E` | Vokal E (mulut terbuka sedang agak melebar) |
+| `O` | Vokal O (mulut bulat lonjong besar) |
+| `REST` | Posisi istirahat / katup bibir rapat bilabial (B, P, M) |
+| `DIAM` | Mulut kembali ke bentuk default ekspresi yang sedang aktif |
+
+*(Kode lama seperti `P_B_M`, `I_G`, `TH`, `N_L`, dll. tetap diterima untuk kompatibilitas mundur).*
 
 ## Pesan bicara
 

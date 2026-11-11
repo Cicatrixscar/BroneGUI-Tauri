@@ -25,7 +25,10 @@ pub const VALID_EMOSI: &[&str] = &[
 ];
 
 pub const VALID_VISEME: &[&str] = &[
-    "P_B_M", "TH", "N_L", "T_D", "F_V", "K", "C_J_SY", "S_Z", "R", "A", "E", "I_G", "O", "U", "DIAM",
+    // Sistem viseme baru (Vokal + REST)
+    "A", "I", "U", "E", "O", "REST", "DIAM",
+    // Kompatibilitas mundur viseme lama
+    "P_B_M", "TH", "N_L", "T_D", "F_V", "K", "C_J_SY", "S_Z", "R", "I_G",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

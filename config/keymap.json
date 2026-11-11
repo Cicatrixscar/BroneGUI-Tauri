@@ -13,21 +13,13 @@
     "9": "happier_transisi"
   },
   "visemes": {
-    "q": "P_B_M",
-    "w": "TH",
-    "e": "N_L",
-    "r": "T_D",
-    "t": "F_V",
-    "y": "K",
-    "u": "C_J_SY",
-    "i": "S_Z",
-    "o": "R",
-    "p": "A",
-    "a": "E",
-    "s": "I_G",
-    "d": "O",
-    "f": "U",
-    "g": "DIAM"
+    "a": "A",
+    "i": "I",
+    "u": "U",
+    "e": "E",
+    "o": "O",
+    "r": "REST",
+    "d": "DIAM"
   }
 }
 

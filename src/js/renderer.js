@@ -224,8 +224,8 @@ export class Renderer {
   }
 
   setMouthToFlat() {
-    const flatMouthAsset = this.config.visemes?.P_B_M || 'assets/viseme/P,B,M.svg';
-    const flatMouthPos = this.config.visemePositions?.P_B_M || { x: 258.5, y: 366, w: 283, h: 20 };
+    const flatMouthAsset = this.config.visemes?.REST || this.config.visemes?.P_B_M || 'assets/viseme/REST.svg';
+    const flatMouthPos = this.config.visemePositions?.REST || this.config.visemePositions?.P_B_M || { x: 258.5, y: 366, w: 283, h: 20 };
     if (this.mouthEl) {
       this.mouthEl.setAttribute('href', flatMouthAsset);
       this.mouthEl.setAttribute('x', flatMouthPos.x);

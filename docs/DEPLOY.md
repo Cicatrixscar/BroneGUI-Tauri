@@ -357,9 +357,8 @@ sudo systemctl status brone-gui.service
 
 **Mode Statis — Panel Keyboard:**
 
-| `1` idle · `2` thinking · `3` sad · `4` cry · `5` shock |
-|---|
-| `6` happy · `7` happier · `8` timeout · `9` happier_transisi |
+- **Ekspresi (1–9):** `1` idle · `2` thinking · `3` sad · `4` cry · `5` shock · `6` happy · `7` happier · `8` timeout · `9` happier_transisi
+- **Viseme Mulut:** `A`, `I`, `U`, `E`, `O`, `R` (REST/katup bibir), `D` (DIAM)
 
 ---
 

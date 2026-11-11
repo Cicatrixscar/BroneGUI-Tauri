@@ -107,12 +107,9 @@ brone-gui/
 │   │   ├── TANDA SERU.svg        # Efek "!" (shock)
 │   │   ├── TANDA TANYA.svg       # Efek "?" (thinking)
 │   │   ├── BRONE_FACE_BACKSIDE.svg # Latar belakang wajah
-│   │   └── viseme/               # Aset mulut viseme (15 posisi)
-│   │       ├── A.svg, E.svg, I,G.svg, O.svg, U.svg
-│   │       ├── P,B,M.svg, F,V.svg, TH.svg
-│   │       ├── N,L.svg, T,D.svg, K.svg
-│   │       ├── C,J,S,Y.svg, S,Z.svg, R.svg
-│   │       └── (DIAM = null, tidak ada aset)
+│   │   └── viseme/               # Aset mulut viseme dinamis (A, I, U, E, O, REST)
+│   │       ├── A.svg, E.svg, I.svg, O.svg, U.svg, REST.svg
+│   │       └── (DIAM = null, kembali ke bentuk mulut ekspresi)
 │   └── config/                   # Konfigurasi yang di-bundle bersama app
 │       ├── config.json           # Koordinat aset, warna, blink interval
 │       └── keymap.json           # Mapping keyboard ke ekspresi/viseme
@@ -484,7 +481,7 @@ Dikonsumsi oleh `main.js` saat startup. Berisi:
   "id": "unik",
   "jadwal": [
     { "t": 0.0, "v": "A" },
-    { "t": 0.3, "v": "P_B_M" },
+    { "t": 0.3, "v": "REST" },
     { "t": 0.6, "v": "DIAM" }
   ]
 }
@@ -520,7 +517,7 @@ Toggle: **F2** (atau klik "Ganti Mode" di panel).
 | **F3** | Toggle panel kontrol (hanya di mode statis) |
 | **Escape** / **Ctrl+Q** | Keluar aplikasi |
 | **1–9** | Set ekspresi (hanya di mode statis) |
-| **Q–G** (huruf kecil) | Set viseme mulut (hanya di mode statis) |
+| **A, I, U, E, O, R (REST), D (DIAM)** | Set viseme mulut manual (hanya di mode statis) |
 | Mouse ke pojok atas (<80px) | Tampilkan tombol ⛶ (fullscreen) dan ✕ (tutup) selama 2.5 detik |
 
 ---

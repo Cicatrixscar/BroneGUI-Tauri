@@ -129,7 +129,13 @@ const DEFAULT_CONFIG = {
     }
   },
   visemes: {
-    P_B_M: 'assets/viseme/P,B,M.svg',
+    A: 'assets/viseme/A.svg',
+    I: 'assets/viseme/I.svg',
+    U: 'assets/viseme/U.svg',
+    E: 'assets/viseme/E.svg',
+    O: 'assets/viseme/O.svg',
+    REST: 'assets/viseme/REST.svg',
+    P_B_M: 'assets/viseme/REST.svg',
     TH: 'assets/viseme/TH.svg',
     N_L: 'assets/viseme/N,L.svg',
     T_D: 'assets/viseme/T,D.svg',
@@ -138,28 +144,26 @@ const DEFAULT_CONFIG = {
     C_J_SY: 'assets/viseme/C,J,S,Y.svg',
     S_Z: 'assets/viseme/S,Z.svg',
     R: 'assets/viseme/R.svg',
-    A: 'assets/viseme/A.svg',
-    E: 'assets/viseme/E.svg',
-    I_G: 'assets/viseme/I,G.svg',
-    O: 'assets/viseme/O.svg',
-    U: 'assets/viseme/U.svg',
+    I_G: 'assets/viseme/I.svg',
     DIAM: null
   },
   visemePositions: {
     A: { x: 288, y: 290, w: 224, h: 177 },
+    I: { x: 255.5, y: 352, w: 289, h: 46 },
+    U: { x: 356.5, y: 320, w: 87, h: 98 },
+    E: { x: 258.5, y: 352, w: 283, h: 78 },
+    O: { x: 326.5, y: 293, w: 147, h: 165 },
+    REST: { x: 258.5, y: 366, w: 283, h: 20 },
+    P_B_M: { x: 258.5, y: 366, w: 283, h: 20 },
     C_J_SY: { x: 346, y: 318, w: 108, h: 122 },
-    E: { x: 259, y: 290, w: 282, h: 155 },
     F_V: { x: 258.5, y: 368, w: 283, h: 16 },
-    I_G: { x: 258.5, y: 352, w: 283, h: 78 },
+    I_G: { x: 255.5, y: 352, w: 289, h: 46 },
     K: { x: 289.5, y: 308, w: 221, h: 147 },
     N_L: { x: 258.5, y: 318, w: 283, h: 125 },
-    O: { x: 326.5, y: 307, w: 147, h: 165 },
-    P_B_M: { x: 258.5, y: 366, w: 283, h: 20 },
     R: { x: 277, y: 317, w: 246, h: 133 },
     S_Z: { x: 262.5, y: 364, w: 275, h: 64 },
     T_D: { x: 258.5, y: 318, w: 283, h: 125 },
-    TH: { x: 262.5, y: 342, w: 275, h: 72 },
-    U: { x: 356.5, y: 320, w: 87, h: 98 }
+    TH: { x: 262.5, y: 342, w: 275, h: 72 }
   },
   blink: {
     minIntervalMs: 3000,
@@ -187,21 +191,13 @@ const DEFAULT_KEYMAP = {
     '9': 'happier_transisi'
   },
   visemes: {
-    'q': 'P_B_M',
-    'w': 'TH',
-    'e': 'N_L',
-    'r': 'T_D',
-    't': 'F_V',
-    'y': 'K',
-    'u': 'C_J_SY',
-    'i': 'S_Z',
-    'o': 'R',
-    'p': 'A',
-    'a': 'E',
-    's': 'I_G',
-    'd': 'O',
-    'f': 'U',
-    'g': 'DIAM'
+    'a': 'A',
+    'i': 'I',
+    'u': 'U',
+    'e': 'E',
+    'o': 'O',
+    'r': 'REST',
+    'd': 'DIAM'
   }
 };
 

@@ -99,3 +99,44 @@ test('ModeManager discards incoming messages during static mode (AC-17.4)', () =
   assert.equal(manager.handleIncomingMessage({ tipe: 'ekspresi' }), false);
 });
 
+test('ModeManager triggers visemes in static mode (A, I, U, E, O, REST, DIAM)', () => {
+  let activeViseme = null;
+  const mockState = {
+    setEmotion: () => {},
+    setViseme: (v) => { activeViseme = v; }
+  };
+
+  const manager = new ModeManager(
+    { mode: { default_mode: 'statis', mode_statis_aktif: true } },
+    { visemes: { a: 'A', i: 'I', u: 'U', e: 'E', o: 'O', r: 'REST', d: 'DIAM' } },
+    mockState
+  );
+
+  const press = (key) => manager.handleKeyDown({ key, preventDefault: () => {} });
+
+  press('a');
+  assert.equal(activeViseme, 'A');
+
+  press('i');
+  assert.equal(activeViseme, 'I');
+
+  press('u');
+  assert.equal(activeViseme, 'U');
+
+  press('e');
+  assert.equal(activeViseme, 'E');
+
+  press('o');
+  assert.equal(activeViseme, 'O');
+
+  press('r');
+  assert.equal(activeViseme, 'REST');
+
+  press('d');
+  assert.equal(activeViseme, 'DIAM');
+
+  // Alias P/B/M -> REST
+  press('p');
+  assert.equal(activeViseme, 'REST');
+});
+

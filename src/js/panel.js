@@ -92,12 +92,12 @@ export class ControlPanel {
       </div>
 
       <div class="panel-section">
-        <div class="section-title">Ekspresi (1–8)</div>
+        <div class="section-title">Ekspresi (1–9)</div>
         <div class="button-grid" id="expr-buttons"></div>
       </div>
 
       <div class="panel-section">
-        <div class="section-title">Viseme Mulut (Q–G)</div>
+        <div class="section-title">Viseme Mulut (A, I, U, E, O, REST, DIAM)</div>
         <div class="button-grid viseme-grid" id="viseme-buttons"></div>
       </div>
     `;
@@ -135,21 +135,13 @@ export class ControlPanel {
     // Isi daftar tombol viseme
     const visemeContainer = this.panelEl.querySelector('#viseme-buttons');
     const visemeMap = this.keymap.visemes ?? {
-      'q': 'P_B_M',
-      'w': 'TH',
-      'e': 'N_L',
-      'r': 'T_D',
-      't': 'F_V',
-      'y': 'K',
-      'u': 'C_J_SY',
-      'i': 'S_Z',
-      'o': 'R',
-      'p': 'A',
-      'a': 'E',
-      's': 'I_G',
-      'd': 'O',
-      'f': 'U',
-      'g': 'DIAM'
+      'a': 'A',
+      'i': 'I',
+      'u': 'U',
+      'e': 'E',
+      'o': 'O',
+      'r': 'REST',
+      'd': 'DIAM'
     };
 
     for (const [key, viseme] of Object.entries(visemeMap)) {
