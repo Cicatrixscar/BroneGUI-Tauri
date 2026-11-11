@@ -1,15 +1,36 @@
-# Brone GUI — Deploy Guide (Robot Intel NUC)
+# Brone GUI — Deploy Guide
 
 > **Repo:** `https://github.com/Cicatrixscar/BroneGUI-Tauri.git`  
-> **Branch:** `main` · **Commit terkini:** `17c17d4`  
-> **Target:** Intel NUC · Ubuntu 22.04.4 LTS · x86_64 · Layar 1024×600
+> **Branch:** `main`  
+> **Target Perangkat yang Didukung:**
+> 1. **Nvidia Jetson Orin Nano** (ARM64 / `aarch64` — Unit Display Layar Wajah Robot)  
+> 2. **Intel NUC** (x86_64 — Unit Komputasi / ROS2)
+
+---
+
+## 📑 Daftar Isi Cepat
+- [🖥️ Legenda Terminal](#-legenda-terminal)
+- [🚀 Bab Khusus: Panduan Deploy di Nvidia Jetson Orin Nano (ARM64)](#-bab-khusus-panduan-deploy-di-nvidia-jetson-orin-nano-arm64) *(Baru & Direkomendasikan untuk Layar Robot)*
+- [Langkah Deploy Standar (Intel NUC / PC Linux x86_64)](#langkah-1--pastikan-kode-sudah-di-github)
+  - [Langkah 1 — Pastikan Kode di GitHub](#langkah-1--pastikan-kode-sudah-di-github)
+  - [Langkah 2 — SSH ke Perangkat](#langkah-2--ssh-ke-robot)
+  - [Langkah 3 — Install Prasyarat (NUC)](#langkah-3--install-prasyarat-sekali-saja)
+  - [Langkah 4 — Clone / Update Kode](#langkah-4--clone-atau-update-kode)
+  - [Langkah 5 — Build Aplikasi](#langkah-5--build)
+  - [Langkah 6 — Jalankan Aplikasi](#langkah-6--jalankan-aplikasi)
+  - [Langkah 7 — Uji Fungsional MQTT](#langkah-7--uji-fungsional-test-mqtt)
+  - [Langkah 8 — Autostart systemd](#langkah-8--autostart-opsional)
+- [Kontrol Aplikasi (Shortcut & Mode Statis)](#kontrol-aplikasi)
+- [Troubleshooting & Solusi Error](#troubleshooting)
+- [Cheatsheet Referensi Cepat](#cheatsheet-referensi-cepat)
 
 ---
 
 ## 🖥️ Legenda Terminal
 
-> `🪟 WINDOWS` — Jalankan di terminal Windows kamu sekarang (PowerShell / CMD)  
-> `🤖 ROBOT` — Jalankan di terminal robot (SSH ke robot)
+> `🪟 WINDOWS` — Jalankan di terminal laptop Windows kamu saat ini  
+> `🤖 JETSON` — Jalankan di sesi SSH terminal Nvidia Jetson Orin Nano  
+> `🤖 NUC` — Jalankan di sesi SSH terminal Intel NUC (jika deploy di NUC)
 
 ---
 
@@ -342,6 +363,216 @@ sudo systemctl enable brone-gui.service
 sudo systemctl start brone-gui.service
 sudo systemctl status brone-gui.service
 ```
+
+---
+
+## 🚀 Bab Khusus: Panduan Deploy di Nvidia Jetson Orin Nano (ARM64)
+
+Bab ini khusus memandu instalasi dan deployment Brone-GUI pada **Nvidia Jetson Orin Nano** yang terhubung langsung ke monitor/layar wajah robot.
+
+### 1. Karakteristik Teknis Jetson Orin Nano
+| Item | Spesifikasi Jetson | Catatan untuk Brone-GUI |
+|---|---|---|
+| Arsitektur CPU | **ARM64** (`aarch64` / ARMv8.2) | Rust & Tauri meng-compile native ke binary ARM64 |
+| GPU | Nvidia Ampere (1024 CUDA cores) | Perlu flag khusus driver jika WebKit blank |
+| OS / JetPack | JetPack 5 (Ubuntu 20.04) atau JetPack 6 (Ubuntu 22.04) | Penyesuaian versi pustaka WebKitGTK |
+| Kode Program | **100% Identik** | Tidak ada perubahan kode Rust, JS, maupun SVG |
+
+---
+
+### 2. Cek Versi Ubuntu di Terminal Jetson
+Buka terminal Jetson (via SSH atau langsung di layar Jetson), lalu ketik:
+```bash
+uname -m          # Harus menampilkan: aarch64
+lsb_release -a    # Perhatikan baris Release: 20.04 atau 22.04
+```
+
+---
+
+### 3. Langkah Instalasi Prasyarat di Jetson (Sekali Saja)
+
+#### A. Install Paket Dasar Compiler & Jaringan
+```bash
+cd ~
+sudo apt install -y curl build-essential pkg-config libssl-dev git libxdo-dev libayatana-appindicator3-dev librsvg2-dev
+```
+*(Catatan: Jika ada error 404 pada paket apt, jalankan `sudo apt update` terlebih dahulu).*
+
+#### B. Install Pustaka WebKitGTK (Auto-Detect Versi Ubuntu)
+Ubuntu 22.04 (JetPack 6) memakai `webkit2gtk-4.1`, sedangkan Ubuntu 20.04 (JetPack 5) memakai `webkit2gtk-4.0`. Jalankan perintah pintar ini:
+```bash
+sudo apt install -y libwebkit2gtk-4.1-dev || sudo apt install -y libwebkit2gtk-4.0-dev
+```
+
+#### C. Install Rust (Otomatis Mendeteksi ARM64)
+Gunakan installer rustup resmi:
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+```
+*(Installer akan otomatis mengenali arsitektur Jetson sebagai `aarch64-unknown-linux-gnu` tanpa perlu setup manual).*
+
+Aktifkan PATH di sesi saat ini dan buat permanen di `~/.bashrc`:
+```bash
+source "$HOME/.cargo/env"
+grep -qxF 'source "$HOME/.cargo/env"' ~/.bashrc || echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
+```
+
+Verifikasi Rust:
+```bash
+rustc --version
+cargo --version
+# Contoh output: rustc 1.8x.x (aarch64-unknown-linux-gnu)
+```
+
+#### D. Install Tauri CLI v2
+```bash
+cargo install tauri-cli --version "^2"
+```
+*(Proses compile memakan waktu sekitar 5–10 menit di Jetson Orin Nano).*
+
+Verifikasi:
+```bash
+cargo tauri --version
+```
+
+---
+
+### 4. Clone / Pull Kode & Build di Jetson
+
+```bash
+# Jika pertama kali:
+cd ~
+git clone https://github.com/Cicatrixscar/BroneGUI-Tauri.git brone_face_ascar
+cd brone_face_ascar
+
+# Jika sudah pernah clone sebelumnya:
+cd ~/brone_face_ascar
+git pull origin main
+
+# Build binary ARM64 release:
+cargo tauri build
+```
+Hasil binary aplikasi akan berada di:
+```text
+~/brone_face_ascar/src-tauri/target/release/brone-gui
+```
+Verifikasi bahwa binary sudah bertipe ARM64:
+```bash
+file src-tauri/target/release/brone-gui
+# Output: ELF 64-bit LSB pie executable, ARM aarch64 ...
+```
+
+---
+
+### 5. Konfigurasi Alamat MQTT Antara Jetson dan NUC
+
+Aplikasi Brone-GUI di Jetson mendengarkan topik ekspresi wajah (`brone/face/ekspresi`, `viseme`, `bicara`).
+
+* **Skenario 1: Mosquitto Broker berjalan di dalam Jetson itu sendiri**  
+  Tidak perlu konfigurasi apapun, aplikasi otomatis membaca dari `127.0.0.1:1883`.
+* **Skenario 2: Mosquitto Broker berjalan di Intel NUC (atau PC lain)**  
+  Misalkan IP Intel NUC adalah `192.168.1.50`, cukup set environment variable saat menjalankan:
+  ```bash
+  export BRONE_MQTT_HOST=192.168.1.50
+  export BRONE_MQTT_PORT=1883
+  ```
+
+---
+
+### 6. Menjalankan Aplikasi di Layar Jetson
+
+Jalankan perintah ini di Jetson:
+```bash
+cd ~/brone_face_ascar
+GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+```
+
+> [!IMPORTANT]
+> **PENTING — Solusi Layar Hitam / Blank pada GPU Nvidia Jetson:**  
+> Driver grafis Nvidia Tegra di Jetson terkadang memiliki ketidakcocokan dengan akselerasi DMA-BUF pada WebKitGTK yang menyebabkan window muncul tapi isinya hitam polos.  
+> Jika ini terjadi, **cukup tambahkan flag `WEBKIT_DISABLE_DMABUF_RENDERER=1`**:
+> ```bash
+> WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+> ```
+
+Jika broker MQTT berada di Intel NUC:
+```bash
+WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11 DISPLAY=:0 BRONE_MQTT_HOST=192.168.1.50 ./src-tauri/target/release/brone-gui
+```
+
+---
+
+### 7. Setup Autostart systemd Khusus Jetson
+
+Agar aplikasi otomatis tampil di layar robot saat Jetson dinyalakan:
+
+```bash
+sudo nano /etc/systemd/system/brone-gui.service
+```
+
+Isi dengan template yang sudah disesuaikan untuk Jetson (ganti `YOUR_JETSON_USER` dengan username Jetson kamu, misal `jetson` atau `brone`):
+```ini
+[Unit]
+Description=Brone Robot Face GUI (Jetson Orin Nano)
+After=network.target graphical-session.target
+
+[Service]
+Type=simple
+User=YOUR_JETSON_USER
+Environment=DISPLAY=:0
+Environment=GDK_BACKEND=x11
+Environment=WEBKIT_DISABLE_DMABUF_RENDERER=1
+Environment=BRONE_MQTT_HOST=127.0.0.1
+Environment=BRONE_MQTT_PORT=1883
+WorkingDirectory=/home/YOUR_JETSON_USER/brone_face_ascar
+ExecStart=/home/YOUR_JETSON_USER/brone_face_ascar/src-tauri/target/release/brone-gui
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=graphical-session.target
+```
+*(Ubah `BRONE_MQTT_HOST` ke IP NUC jika broker MQTT berada di NUC).*
+
+Aktifkan service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable brone-gui.service
+sudo systemctl start brone-gui.service
+sudo systemctl status brone-gui.service
+```
+
+---
+
+### 8. Troubleshooting Khusus Jetson Orin Nano
+
+#### ❌ Window muncul tapi layar hitam / blank putih
+**Penyebab:** Driver Nvidia Jetson mengunci hardware compositing WebKit.  
+**Solusi:** Jalankan dengan menonaktifkan DMA-BUF:
+```bash
+export WEBKIT_DISABLE_DMABUF_RENDERER=1
+GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+```
+Jika masih blank, tambahkan juga: `export WEBKIT_DISABLE_COMPOSITING_MODE=1`.
+
+#### ❌ `cargo build` terasa sangat lambat / memori habis saat compile
+**Penyebab:** Jetson Orin Nano (khususnya varian RAM 4GB atau 8GB) kehabisan RAM fisik saat linking crate besar.  
+**Solusi:** Buat file swap sementara atau batasi paralelisme compiler:
+```bash
+# Batasi 2 thread kompilasi agar RAM tetap lega:
+cargo tauri build -- -j 2
+```
+
+#### ❌ Gagal koneksi MQTT ke Intel NUC
+**Penyebab:** Firewall di NUC memblokir port 1883 atau Mosquitto di NUC belum mengizinkan koneksi dari luar localhost.  
+**Solusi:** Di NUC, pastikan `/etc/mosquitto/conf.d/default.conf` berisi:
+```text
+listener 1883 0.0.0.0
+allow_anonymous true
+```
+Lalu restart Mosquitto di NUC: `sudo systemctl restart mosquitto`.
 
 ---
 
