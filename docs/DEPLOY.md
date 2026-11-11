@@ -208,7 +208,7 @@ cd brone_face_ascar
 cd ~/brone_face_ascar
 git pull origin main
 git log --oneline -3
-# Pastikan commit terbaru: 17c17d4
+# Pastikan commit terbaru: 3b5e8df
 ```
 
 ---
@@ -391,48 +391,46 @@ lsb_release -a    # Perhatikan baris Release: 20.04 atau 22.04
 
 ### 3. Langkah Instalasi Prasyarat di Jetson (Sekali Saja)
 
-#### A. Install Paket Dasar Compiler & Jaringan
-```bash
-cd ~
-sudo apt install -y curl build-essential pkg-config libssl-dev git libxdo-dev libayatana-appindicator3-dev librsvg2-dev
-```
-*(Catatan: Jika ada error 404 pada paket apt, jalankan `sudo apt update` terlebih dahulu).*
+> [!NOTE]
+> Konfirmasi Robot Brone: Ubuntu **22.04.5** LTS (JetPack 6), `aarch64`, username `brone`.
 
-#### B. Install Pustaka WebKitGTK (Auto-Detect Versi Ubuntu)
-Ubuntu 22.04 (JetPack 6) memakai `webkit2gtk-4.1`, sedangkan Ubuntu 20.04 (JetPack 5) memakai `webkit2gtk-4.0`. Jalankan perintah pintar ini:
+#### Step 1 — Install semua dependency sistem sekaligus
 ```bash
-sudo apt install -y libwebkit2gtk-4.1-dev || sudo apt install -y libwebkit2gtk-4.0-dev
+sudo apt install -y curl build-essential pkg-config libssl-dev git \
+  libxdo-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev
 ```
+*(Jika ada error 404 pada paket apt, jalankan `sudo apt update` terlebih dahulu).*
 
-#### C. Install Rust (Otomatis Mendeteksi ARM64)
-Gunakan installer rustup resmi:
+#### Step 2 — Install Rust (otomatis mendeteksi ARM64)
+Gunakan installer rustup resmi — installer otomatis mengenali `aarch64-unknown-linux-gnu`:
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ```
-*(Installer akan otomatis mengenali arsitektur Jetson sebagai `aarch64-unknown-linux-gnu` tanpa perlu setup manual).*
 
-Aktifkan PATH di sesi saat ini dan buat permanen di `~/.bashrc`:
+#### Step 3 — Aktifkan PATH Cargo
 ```bash
 source "$HOME/.cargo/env"
 grep -qxF 'source "$HOME/.cargo/env"' ~/.bashrc || echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
 ```
+*(Kedua perintah di atas tidak mengeluarkan output jika berhasil — itu normal).*
 
-Verifikasi Rust:
+#### Step 4 — Verifikasi Rust
 ```bash
 rustc --version
 cargo --version
 # Contoh output: rustc 1.8x.x (aarch64-unknown-linux-gnu)
 ```
 
-#### D. Install Tauri CLI v2
+#### Step 5 — Install Tauri CLI v2
 ```bash
 cargo install tauri-cli --version "^2"
 ```
-*(Proses compile memakan waktu sekitar 5–10 menit di Jetson Orin Nano).*
+*(Proses compile sekitar 10–30 menit di Jetson Orin Nano — biarkan berjalan hingga selesai).*
 
 Verifikasi:
 ```bash
 cargo tauri --version
+# Output: cargo-tauri 2.x.x
 ```
 
 ---
@@ -468,7 +466,12 @@ file src-tauri/target/release/brone-gui
 
 Aplikasi Brone-GUI di Jetson mendengarkan topik ekspresi wajah (`brone/face/ekspresi`, `viseme`, `bicara`).
 
-* **Skenario 1: Mosquitto Broker berjalan di dalam Jetson itu sendiri**  
+> [!NOTE]
+> **Konfigurasi Robot Brone (Sudah Dikonfirmasi):**  
+> Mosquitto broker berjalan **di Jetson sendiri** (`127.0.0.1:1883`).  
+> Tidak perlu konfigurasi tambahan — aplikasi otomatis terhubung ke broker lokal.
+
+* **Skenario 1 ✅ (Aktif di Robot Brone): Mosquitto Broker berjalan di dalam Jetson itu sendiri**  
   Tidak perlu konfigurasi apapun, aplikasi otomatis membaca dari `127.0.0.1:1883`.
 * **Skenario 2: Mosquitto Broker berjalan di Intel NUC (atau PC lain)**  
   Misalkan IP Intel NUC adalah `192.168.1.50`, cukup set environment variable saat menjalankan:
@@ -510,22 +513,23 @@ Agar aplikasi otomatis tampil di layar robot saat Jetson dinyalakan:
 sudo nano /etc/systemd/system/brone-gui.service
 ```
 
-Isi dengan template yang sudah disesuaikan untuk Jetson (ganti `YOUR_JETSON_USER` dengan username Jetson kamu, misal `jetson` atau `brone`):
+Isi dengan template yang sudah disesuaikan untuk Jetson Orin Nano Robot Brone (username `brone`, broker MQTT di Jetson sendiri port `1883`):
 ```ini
 [Unit]
 Description=Brone Robot Face GUI (Jetson Orin Nano)
-After=network.target graphical-session.target
+After=network.target graphical-session.target mosquitto.service
+Requires=mosquitto.service
 
 [Service]
 Type=simple
-User=YOUR_JETSON_USER
+User=brone
 Environment=DISPLAY=:0
 Environment=GDK_BACKEND=x11
 Environment=WEBKIT_DISABLE_DMABUF_RENDERER=1
 Environment=BRONE_MQTT_HOST=127.0.0.1
 Environment=BRONE_MQTT_PORT=1883
-WorkingDirectory=/home/YOUR_JETSON_USER/brone_face_ascar
-ExecStart=/home/YOUR_JETSON_USER/brone_face_ascar/src-tauri/target/release/brone-gui
+WorkingDirectory=/home/brone/brone_face_ascar
+ExecStart=/home/brone/brone_face_ascar/src-tauri/target/release/brone-gui
 Restart=on-failure
 RestartSec=5s
 StandardOutput=journal
@@ -534,7 +538,7 @@ StandardError=journal
 [Install]
 WantedBy=graphical-session.target
 ```
-*(Ubah `BRONE_MQTT_HOST` ke IP NUC jika broker MQTT berada di NUC).*
+*(Jika broker MQTT dipindah ke NUC di masa depan, ubah `BRONE_MQTT_HOST` ke IP NUC dan hapus baris `Requires=mosquitto.service`).*
 
 Aktifkan service:
 ```bash
