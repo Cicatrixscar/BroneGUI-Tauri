@@ -4,7 +4,6 @@ pub mod connector;
 use commands::auth::{exit_app, is_fullscreen, toggle_fullscreen, verify_mode_password};
 use connector::mqtt::{start_mqtt_client, MqttConfig};
 use log::info;
-use tauri::Manager;
 
 pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
