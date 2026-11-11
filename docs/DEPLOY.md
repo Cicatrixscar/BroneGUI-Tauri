@@ -62,44 +62,112 @@ ssh username@IP_ROBOT
 
 ## Langkah 3 — Install Prasyarat (Sekali Saja)
 
-🤖 **ROBOT** — Hanya jika belum pernah dilakukan sebelumnya:
+🤖 **ROBOT** — Jalankan langkah ini hanya jika robot belum pernah di-setup untuk Rust / Tauri sebelumnya.
+
+### 3.1 — Install Paket Dasar Sistem (Wajib Sebelum Rust)
+Paket-paket ini wajib ada agar script installer Rust (`curl`), kompilasi native C/C++ (`gcc`/`make`), dan SSL dapat bekerja:
 
 ```bash
-# Cek apakah Rust sudah ada
-rustc --version    # Jika error "command not found" → install Rust
-cargo --version
-
-# Jika Rust belum ada, install:
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
-```
-
-```bash
-# Cek apakah Tauri CLI sudah ada
-cargo tauri --version    # Jika error → install Tauri CLI
-
-# Jika belum ada:
-cargo install tauri-cli --version "^2"
-```
-
-```bash
-# Install sistem dependencies (diperlukan untuk build WebKit/GTK)
 sudo apt update
+sudo apt install -y curl build-essential pkg-config libssl-dev git
+```
+
+---
+
+### 3.2 — Install Rust Lengkap (rustup, rustc, cargo)
+
+**A. Cek apakah Rust sudah terinstall:**
+```bash
+rustc --version
+cargo --version
+```
+> Jika keduanya menampilkan versi (misal `rustc 1.8x.x`), kamu bisa langsung lanjut ke **3.3**.  
+> Jika muncul pesan `command not found`, lanjutkan langkah install di bawah ini:
+
+**B. Jalankan Installer Rust (Otomatis & Non-Interaktif):**
+Gunakan parameter `-s -- -y` agar installer langsung memilih opsi default (1) secara otomatis tanpa menunggu input prompt keyboard:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+```
+
+*(Catatan: Jika koneksi lambat dan ingin melihat proses interaktif, jalankan `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh` lalu ketik `1` dan tekan Enter).*
+
+**C. Muat Environment & PATH Cargo:**
+Agar command `cargo` dan `rustc` langsung dapat dipanggil di terminal saat ini:
+
+```bash
+# Aktifkan di terminal saat ini:
+source "$HOME/.cargo/env"
+
+# Pastikan permanen masuk ke ~/.bashrc (agar tidak hilang saat login/SSH baru):
+grep -qxF 'source "$HOME/.cargo/env"' ~/.bashrc || echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
+```
+
+**D. Konfigurasi Toolchain & Target Linux x86_64:**
+Pastikan toolchain stable aktif dan target kompilasi Linux x86_64 terpasang:
+
+```bash
+rustup default stable
+rustup update stable
+rustup target add x86_64-unknown-linux-gnu
+```
+
+**E. Verifikasi Instalasi Rust:**
+```bash
+rustc --version
+cargo --version
+rustup --version
+```
+*(Semua perintah di atas harus menghasilkan nomor versi tanpa error).*
+
+---
+
+### 3.3 — Install Library GUI (WebKit2GTK) untuk Tauri
+
+Tauri membutuhkan runtime WebKitGTK dan pustaka grafis sistem Ubuntu:
+
+```bash
 sudo apt install -y \
   libwebkit2gtk-4.1-dev \
-  build-essential \
   libxdo-dev \
-  libssl-dev \
   libayatana-appindicator3-dev \
   librsvg2-dev
 ```
 
+---
+
+### 3.4 — Install Tauri CLI v2
+
+Tauri CLI digunakan untuk mem-bundle aplikasi (`cargo tauri build`):
+
+```bash
+# Cek apakah Tauri CLI sudah terpasang:
+cargo tauri --version
+
+# Jika belum terpasang, install versi 2:
+cargo install tauri-cli --version "^2"
+```
+
 > [!NOTE]
-> Mosquitto diasumsikan **sudah terinstall dan berjalan** di robot. Verifikasi cepat:
+> `cargo install tauri-cli` akan meng-compile dari source dan memakan waktu sekitar **5–10 menit** di Intel NUC. Biarkan proses berjalan hingga selesai.
+>
+> Verifikasi setelah selesai:
 > ```bash
-> sudo systemctl status mosquitto
-> # Harus: Active: active (running)
+> cargo tauri --version
+> # Output yang diharapkan: cargo-tauri 2.x.x
 > ```
+
+---
+
+### 3.5 — Verifikasi Mosquitto Broker
+Mosquitto diasumsikan sudah terpasang di robot. Cek statusnya:
+
+```bash
+sudo systemctl status mosquitto
+# Harus menampilkan: Active: active (running)
+```
+*(Jika belum berjalan: `sudo systemctl enable mosquitto && sudo systemctl start mosquitto`)*
 
 ---
 
@@ -297,13 +365,57 @@ sudo systemctl status brone-gui.service
 
 ## Troubleshooting
 
-### ❌ Aplikasi tidak muncul di layar robot
+### ❌ `cargo: command not found` atau `rustc: command not found`
+Penyebab: PATH Cargo belum termuat di sesi terminal saat ini.
+```bash
+# Muat environment Cargo:
+source "$HOME/.cargo/env"
+
+# Cek apakah binary benar-benar ada di:
+ls -l "$HOME/.cargo/bin/cargo"
+
+# Jika file tidak ada, ulangi instalasi Rust:
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
+```
+
+---
+
+### ❌ `error: linker 'cc' not found` saat `cargo build`
+Penyebab: Compiler C (`gcc`) belum terpasang di sistem Ubuntu robot.
+```bash
+sudo apt update
+sudo apt install -y build-essential
+```
+
+---
+
+### ❌ Permission denied di folder `~/.cargo` atau `~/.rustup`
+Penyebab: Pernah menjalankan `sudo cargo ...` sehingga ownership file berubah menjadi milik `root`.
+```bash
+sudo chown -R $USER:$USER ~/.cargo ~/.rustup
+```
+
+---
+
+### ❌ Build error: `could not find system library 'webkit2gtk-4.1'`
+Penyebab: Library header WebKitGTK belum terpasang.
+```bash
+sudo apt update
+sudo apt install -y libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
+```
+
+---
+
+### ❌ Aplikasi tidak muncul di layar robot (layar hitam / no display)
 ```bash
 # Pastikan DISPLAY benar
 echo $DISPLAY   # Harus ada isinya, misal :0
 # Jalankan dengan env lengkap:
 GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
 ```
+
+---
 
 ### ❌ Ekspresi tidak berubah setelah mosquitto_pub
 ```bash
@@ -315,10 +427,7 @@ sudo systemctl status mosquitto
 sudo journalctl -u brone-gui -f
 ```
 
-### ❌ Build error: `could not find webkit2gtk-4.1`
-```bash
-sudo apt install -y libwebkit2gtk-4.1-dev
-```
+---
 
 ### ❌ Layar terkunci, tidak bisa keluar
 ```bash
