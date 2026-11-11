@@ -14,6 +14,7 @@ Aplikasi menerima perintah ekspresi dan viseme dari LLM melalui **MQTT**, lalu m
 - [Backend (Rust) — Breakdown File](#backend-rust--breakdown-file)
 - [Konfigurasi](#konfigurasi)
 - [Ekspresi & Aset SVG](#ekspresi--aset-svg)
+- [Viseme Dinamis](#viseme-dinamis-mulut-bicara)
 - [Protokol MQTT](#protokol-mqtt)
 - [Mode Operasi](#mode-operasi)
 - [Kontrol Aplikasi](#kontrol-aplikasi)
@@ -181,7 +182,7 @@ Halaman utama. Mendefinisikan struktur SVG wajah dengan layer-layer:
 | Fungsi / Blok | Deskripsi |
 |---|---|
 | `DEFAULT_CONFIG` | Konfigurasi fallback jika `config.json` gagal dimuat. Berisi koordinat semua ekspresi, aset, viseme positions, blink interval. |
-| `DEFAULT_KEYMAP` | Keymap fallback: F2 mode, F3 panel, 1–9 ekspresi, q–g viseme. |
+| `DEFAULT_KEYMAP` | Keymap fallback: F2 mode, F3 panel, 1–9 ekspresi, a/i/u/e/o/r/d viseme. |
 | `fetchJsonFirstAvailable(paths, fallback, name)` | Coba fetch JSON dari beberapa path berurutan. Jika semua gagal, pakai fallback. |
 | `initApp()` | Muat `config.json` + `config.local.json` (opsional override) + `keymap.json`. Inisialisasi semua kelas: `FaceState`, `BlinkController`, `Renderer`, `ModeManager`, `ControlPanel`, `initConnector`. |
 | Event listeners keyboard | F11 → `toggleFullscreen()`, Escape/Ctrl+Q → `closeApplication()`. |
@@ -218,7 +219,7 @@ Halaman utama. Mendefinisikan struktur SVG wajah dengan layer-layer:
 | `triggerBlinkAnimation()` | Jalankan animasi kedip via anime.js: `scaleY` 1.0 → 0.04 → 1.0 dalam `durationMs`. |
 | `applyState(force)` | Deteksi perubahan emosi/viseme. Jika emosi berubah → `transitionToEmotion()`. Jika hanya viseme berubah → `updateMouth()`. |
 | `transitionToEmotion(targetEmotion)` | **Animasi pergantian ekspresi 3 fase:** (1) mata menutup + mulut merapat (175ms), (2) di titik tengah: swap aset mata & mulut ke ekspresi baru, (3) mata membuka + mulut membuka (175ms). Total ±350ms. |
-| `setMouthToFlat()` | Pasang aset mulut paling datar (`P,B,M.svg`) selama titik tengah transisi. |
+| `setMouthToFlat()` | Pasang aset mulut paling datar (`REST.svg` / `P,B,M.svg`) selama titik tengah transisi. |
 | `updateEyes(emosi)` | Ganti `href`, `x`, `y`, `width`, `height` pada `#eye-l` dan `#eye-r` sesuai ekspresi. |
 | `clearEmotionOverlays()` | Sembunyikan blush, air mata (pause animasi), efek simbol. Hapus transform rotasi timeout dari mata. |
 | `updateEmotionOverlays(emosi)` | Tampilkan overlay sesuai ekspresi: blush (happier), air mata + animasi aliran (cry), simbol melayang (shock/thinking). |
@@ -268,7 +269,7 @@ Kedip dinonaktifkan otomatis selama transisi ekspresi dan saat ekspresi `timeout
 | `verifyPassword()` | Selalu `{success: true}` — autentikasi dinonaktifkan. |
 | `switchMode()` | Toggle dinamis↔statis. Jika kembali ke dinamis: `state.resetToIdle()`. Panggil `onModeChange` callback. |
 | `handleIncomingMessage(message)` | Di mode statis: buang pesan (return `false`). Di mode dinamis: izinkan (return `true`). |
-| `handleKeyDown(event)` | F2: toggle mode. Di mode statis: F3 toggle panel, 1–9 set ekspresi, q–g set viseme. Di mode dinamis: semua tombol kecuali F2 diabaikan. |
+| `handleKeyDown(event)` | F2: toggle mode. Di mode statis: F3 toggle panel, 1–9 set ekspresi, A/I/U/E/O/R/D set viseme mulut. Di mode dinamis: semua tombol kecuali F2 diabaikan. |
 | `destroy()` | Hapus event listener `keydown` (cleanup). |
 
 ---
@@ -286,7 +287,7 @@ Kedip dinonaktifkan otomatis selama transisi ekspresi dan saat ekspresi `timeout
 | Method | Deskripsi |
 |---|---|
 | `constructor(state, modeManager, keymap)` | Buat panel DOM, daftarkan listener state untuk update indikator aktif. |
-| `initDOM()` | Buat elemen `#control-panel` secara programatik: header (badge MODE STATIS, shortcut F2/F3/F11/Esc), grid tombol ekspresi (1–9), grid tombol viseme (Q–G). Pasang click handler semua tombol. |
+| `initDOM()` | Buat elemen `#control-panel` secara programatik: header (badge MODE STATIS, shortcut F2/F3/F11/Esc), grid tombol ekspresi (1–9), grid tombol viseme (A, I, U, E, O, REST, DIAM). Pasang click handler semua tombol. |
 | `setMode(mode)` | Tampilkan panel jika mode statis, sembunyikan jika dinamis. |
 | `togglePanelVisibility()` | Toggle visibilitas panel (hanya di mode statis). |
 | `updateActiveIndicators()` | Tambahkan class `active` pada tombol ekspresi/viseme yang sedang aktif sesuai `state`. |
@@ -356,7 +357,7 @@ Binary entry point. Hanya berisi satu baris: delegasi ke `brone_gui_lib::run()`.
 | Item | Deskripsi |
 |---|---|
 | `VALID_EMOSI` | Daftar nama ekspresi yang diizinkan: 9 nama English canonical + 7 alias Indonesia. |
-| `VALID_VISEME` | 15 kode viseme yang diizinkan: `P_B_M`, `TH`, `N_L`, `T_D`, `F_V`, `K`, `C_J_SY`, `S_Z`, `R`, `A`, `E`, `I_G`, `O`, `U`, `DIAM`. |
+| `VALID_VISEME` | Kode viseme yang diizinkan: viseme dinamis (`A`, `I`, `U`, `E`, `O`, `REST`, `DIAM`) + kode legacy (`P_B_M`, `TH`, `N_L`, dll). |
 | `struct VisemeItem` | `{ t: f32, v: String }` — satu item jadwal viseme. |
 | `enum Pesan` | Tagged union dengan `#[serde(tag = "tipe")]`: `Ekspresi { id, emosi, intensitas, durasi_ms }`, `Viseme { id, jadwal }`, `Bicara { status }`. |
 | `fn default_intensitas()` | Kembalikan `1.0` (nilai default field `intensitas`). |
@@ -439,7 +440,7 @@ Dikonsumsi oleh `main.js` saat startup. Berisi:
 - `toggleMode` — key untuk toggle mode (default `F2`)
 - `togglePanel` — key untuk toggle panel (default `F3`)
 - `expressions` — mapping `"1"–"9"` ke nama ekspresi
-- `visemes` — mapping `"q"–"g"` ke kode viseme
+- `visemes` — mapping `"a"`, `"i"`, `"u"`, `"e"`, `"o"`, `"r"` (REST), `"d"` (DIAM) ke kode viseme
 
 > **Override lokal:** Buat `src/config/config.local.json` untuk override sebagian config tanpa mengubah file utama. File ini tidak di-commit ke repo.
 
@@ -458,6 +459,28 @@ Dikonsumsi oleh `main.js` saat startup. Berisi:
 | `shock` | `terkejut` | MATA.svg | SHOCK.svg | Tanda seru melayang |
 | `thinking` | `berpikir` | LOAD EYE.svg (kiri) + MATA.svg (kanan) | LOAD MOUTH.svg | Tanda tanya melayang |
 | `timeout` | — | TIMEOUT EYE LEFT/RIGHT.svg (berputar) | TIMEOUT MOUTH.svg | Rotasi berkelanjutan |
+
+### Viseme Dinamis (Mulut Bicara)
+
+Bentuk gerakan mulut bicara dibentuk oleh vokal utama (`A`, `I`, `U`, `E`, `O`) dan katup bilabial (`REST`):
+
+| Viseme | Dimensi (w × h) | Karakteristik / Pelafalan Fonetik |
+|---|---|---|
+| `A` | 224 × 177 px | Mulut terbuka lebar vertikal (A, H, K, serta konsonan + A) |
+| `I` | 289 × 46 px | Mulut melebar pipih horizontal |
+| `U` | 87 × 98 px | Mulut mengerucut bulat kecil (U, Q) |
+| `E` | 283 × 78 px | Mulut terbuka sedang agak melebar (E, B, C, D, G, J, P, T, V, W, Y, Z, S, R, X, F, L, N) |
+| `O` | 147 × 165 px | Mulut bulat lonjong besar |
+| `REST` | 283 × 20 px | Garis rapat / istirahat / katup bibir bilabial (B, M, P) |
+| `DIAM` | — | Mulut kembali ke bentuk default ekspresi yang sedang aktif |
+
+#### Rumus Coarticulation Mulut:
+- **Konsonan Biasa + Vokal** (misal *KA, TA, SA*): `[VOKAL]` (langsung bentuk vokal).
+- **Bilabial (B/M/P) + Vokal** (misal *BA, MA, PA*): `REST ➔ VOKAL`.
+- **Bilabial + Vokal + Bilabial** (misal *BAM, PAP, MAB*): `REST ➔ VOKAL ➔ REST`.
+- **Vokal + Bilabial** (misal *AM, AP, AB*): `VOKAL ➔ REST`.
+- **Vokal + Bilabial + Vokal** (misal *AMA, APA, ABA*): `VOKAL ➔ REST ➔ VOKAL`.
+- **Khusus Huruf "M"**: `E ➔ REST` (karena pelafalannya *"em"* diawali vokal e lalu ditutup bibir katup).
 
 ---
 
@@ -529,8 +552,8 @@ Toggle: **F2** (atau klik "Ganti Mode" di panel).
 node --test tests/fe/*.test.js
 
 # Output yang diharapkan:
-# ℹ tests 26
-# ℹ pass 26
+# ℹ tests 28
+# ℹ pass 28
 # ℹ fail 0
 ```
 
