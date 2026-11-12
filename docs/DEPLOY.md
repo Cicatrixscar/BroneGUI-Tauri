@@ -273,6 +273,22 @@ GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui &
 ### Dari 🤖 ROBOT (paling mudah):
 
 ```bash
+# Test format asli LLM (robot/#): happy lalu idle
+mosquitto_pub -h 127.0.0.1 -t "robot/expression" -m '{"expression":"happy"}'
+mosquitto_pub -h 127.0.0.1 -t "robot/expression" -m '{"expression":"idle"}'
+
+# Test status LLM: wajah thinking, lalu timeout bila error
+mosquitto_pub -h 127.0.0.1 -t "robot/voice_stage" -m '{"stage":"llm","state":"start"}'
+mosquitto_pub -h 127.0.0.1 -t "robot/voice_stage" -m '{"stage":"error","state":"llm"}'
+
+# Test sinyal bicara
+mosquitto_pub -h 127.0.0.1 -t "robot/expression" -m '{"expression":"speaking","duration":4}'
+mosquitto_pub -h 127.0.0.1 -t "robot/voice_stage" -m '{"stage":"tts","state":"end"}'
+```
+
+### Format kontrak internal (uji manual):
+
+```bash
 # Test idle
 mosquitto_pub -h 127.0.0.1 -t "brone/face/ekspresi" \
   -m '{"tipe":"ekspresi","emosi":"idle","durasi_ms":3000}'
@@ -335,8 +351,7 @@ Isi file:
 ```ini
 [Unit]
 Description=Brone Robot Face GUI
-After=network.target graphical-session.target mosquitto.service
-Requires=mosquitto.service
+After=network.target graphical-session.target
 
 [Service]
 Type=simple
@@ -464,7 +479,7 @@ file src-tauri/target/release/brone-gui
 
 ### 5. Konfigurasi Alamat MQTT Antara Jetson dan NUC
 
-Aplikasi Brone-GUI di Jetson mendengarkan topik ekspresi wajah (`brone/face/ekspresi`, `viseme`, `bicara`).
+Aplikasi Brone-GUI di Jetson berlangganan topik LLM `robot/expression` dan `robot/voice_stage` (diterjemahkan ke kontrak internal GUI), serta topik lama `brone/face/ekspresi`, `brone/face/viseme`, `brone/face/bicara` untuk uji manual.
 
 > [!NOTE]
 > **Konfigurasi Robot Brone (Sudah Dikonfirmasi):**  
@@ -517,8 +532,7 @@ Isi dengan template yang sudah disesuaikan untuk Jetson Orin Nano Robot Brone (u
 ```ini
 [Unit]
 Description=Brone Robot Face GUI (Jetson Orin Nano)
-After=network.target graphical-session.target mosquitto.service
-Requires=mosquitto.service
+After=network.target graphical-session.target
 
 [Service]
 Type=simple
@@ -538,7 +552,7 @@ StandardError=journal
 [Install]
 WantedBy=graphical-session.target
 ```
-*(Jika broker MQTT dipindah ke NUC di masa depan, ubah `BRONE_MQTT_HOST` ke IP NUC dan hapus baris `Requires=mosquitto.service`).*
+*(Unit GUI tidak memakai `Requires=mosquitto.service`. Ini disengaja: broker di Jetson berjalan tanpa unit `mosquitto.service` (laporan audit 11 Nov 2026). Jika broker MQTT dipindah ke NUC di masa depan, cukup ubah `BRONE_MQTT_HOST` ke IP NUC.)*
 
 Aktifkan service:
 ```bash

@@ -13,8 +13,9 @@ globalThis.performance = { now: () => Date.now() };
 const { initConnector } = await import('../../src/js/connector.js');
 
 // --- Minimal state mock ---
-function buatStateMock() {
+function buatStateMock(config = undefined) {
   return {
+    config,
     emosi: 'idle',
     viseme: 'DIAM',
     setEmotion(emosi) { this.emosi = emosi; },
@@ -117,6 +118,49 @@ describe('Connector — bicara', () => {
     window.sendBroneMessage({ tipe: 'bicara', status: 'mulai' });
     assert.equal(state.viseme, 'O'); // tidak berubah
     done();
+  });
+});
+
+describe('Connector — fallback mulut bicara (nonaktif default)', () => {
+  it('aktif: mulai dari mulut ekspresi, lalu ganti vokal, selesai reset', (_, done) => {
+    const state = buatStateMock({
+      bicara: {
+        fallbackMulutAktif: true,
+        fallbackIntervalMs: 20,
+        fallbackWatchdogMs: 500,
+      },
+    });
+    initConnector(state, modeManagerLolos);
+
+    window.sendBroneMessage({ tipe: 'bicara', status: 'mulai' });
+    assert.equal(state.viseme, 'DIAM'); // ikut ekspresi aktif dulu
+
+    setTimeout(() => {
+      assert.notEqual(state.viseme, 'DIAM'); // sudah ada vokal fallback
+      window.sendBroneMessage({ tipe: 'bicara', status: 'selesai' });
+      assert.equal(state.viseme, 'DIAM');
+      done();
+    }, 60);
+  });
+
+  it('viseme asli menghentikan fallback', (_, done) => {
+    const state = buatStateMock({
+      bicara: {
+        fallbackMulutAktif: true,
+        fallbackIntervalMs: 20,
+        fallbackWatchdogMs: 500,
+      },
+    });
+    initConnector(state, modeManagerLolos);
+
+    window.sendBroneMessage({ tipe: 'bicara', status: 'mulai' });
+    window.sendBroneMessage({ tipe: 'viseme', jadwal: [{ t: 0, v: 'REST' }] });
+
+    setTimeout(() => {
+      assert.equal(state.viseme, 'REST');
+      window.sendBroneMessage({ tipe: 'bicara', status: 'selesai' });
+      done();
+    }, 40);
   });
 });
 

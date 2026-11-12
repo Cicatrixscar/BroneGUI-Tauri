@@ -1,7 +1,7 @@
 # PRD: GUI Wajah Brone
 
-Versi: 1.2 (draft). Perubahan: parameter offset viseme ditambahkan (Q28, usulan dari pembimbing). Perubahan: Q2 sampai Q6, Q9 sampai Q11, dan Q25 sampai Q26 diputuskan atau ditutup. Efek dianimasikan (F-09). Idle tanpa timeout (F-08). Q1 menunggu tim LLM. Q7, Q8, Q25, Q26, Q27 terbuka.
-Status: Q1 menunggu tim LLM. Q7, Q8, Q25, Q26, dan Q27 masih terbuka (lihat bagian 12). Sisanya sudah diputuskan atau ditutup.
+Versi: 1.2 (draft). Perubahan: parameter offset viseme ditambahkan (Q28, usulan dari pembimbing). Perubahan: Q2 sampai Q6, Q9 sampai Q11, dan Q25 sampai Q26 diputuskan atau ditutup. Efek dianimasikan (F-09). Idle tanpa timeout (F-08). Q1 diputuskan: MQTT. Q7, Q8, Q25, Q26, Q27 terbuka.
+Status: Q1 diputuskan (MQTT). Q7, Q8, Q25, Q26, dan Q27 masih terbuka (lihat bagian 12). Sisanya sudah diputuskan atau ditutup.
 Pemilik: Tim GUI Brone
 
 Catatan untuk agent: dokumen ini mendefinisikan apa yang dibangun dan bagaimana menguji hasilnya. Nilai yang ditandai TBD atau DRAFT belum disepakati. Jangan mengisinya dengan angka tebakan. Tanyakan atau tandai sebagai asumsi.
@@ -75,7 +75,7 @@ Modul LLM / suara  --(pesan JSON)-->  CONNECTOR (Rust, src-tauri)  --(event Taur
 - Frontend (`src/`): semua logika tampilan. Berjalan di WebKitGTK melalui Tauri.
 - Backend (`src-tauri/`): hanya connector. Tidak menggambar apa pun.
 - Kontrak pesan: `docs/CONTRACT.md`. Kedua sisi hanya bertemu lewat kontrak ini.
-- Transport dari modul LLM ke connector: belum diputuskan (lihat bagian 12).
+- Transport dari modul LLM ke connector: MQTT. LLM publish ke `robot/expression` dan `robot/voice_stage`; backend GUI menerjemahkan ke kontrak internal (diputuskan lewat audit 11 November 2026, lihat `docs/CONTRACT.md`).
 
 ## 6. Fitur detail
 
@@ -523,7 +523,7 @@ Harus diputuskan sebelum implementasi terkait:
 
 | No | Pertanyaan | Dampak | Usulan awal |
 |---|---|---|---|
-| Q1 | Transport dari modul LLM ke connector | F-05, F-10, 8.4 | **Menunggu tim LLM.** Perlu konfirmasi (WebSocket localhost atau lainnya) |
+| Q1 | Transport dari modul LLM ke connector | F-05, F-10, 8.4 | **Diputuskan:** MQTT. LLM publish `robot/expression` dan `robot/voice_stage`; adapter di backend GUI memetakan payload dan emosi (audit 11 November 2026) |
 | Q2 | Dari mana waktu audio untuk viseme berasal | F-06 | **Diputuskan:** timestamp dari tim LLM, yaitu saat audio mulai diputar. Basis waktu detail ada di Q26 |
 | Q3 | Siapa yang mengubah fonem jadi viseme | F-06 | **Diputuskan:** JSON dari tim LLM sudah berisi timestamp dan viseme. GUI tidak mengubah fonem |
 | Q4 | Efek air mata, tanda seru, tanda tanya | F-09 | **Diputuskan:** efek dianimasikan. Air mata mengalir. Tanda seru dan tanda tanya masuk dan keluar dengan animasi |

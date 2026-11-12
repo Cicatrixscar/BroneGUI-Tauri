@@ -161,6 +161,11 @@
     "maxIntervalMs": 6000,
     "durationMs": 350
   },
+  "bicara": {
+    "fallbackMulutAktif": false,
+    "fallbackIntervalMs": 140,
+    "fallbackWatchdogMs": 10000
+  },
   "transition": {
     "defaultDurationMs": 400,
     "easing": "easeInOutQuad"
@@ -174,10 +179,11 @@
     "port": 1883,
     "client_id": "brone_gui_display",
     "topics": [
+      "robot/expression",
+      "robot/voice_stage",
       "brone/face/ekspresi",
       "brone/face/viseme",
-      "brone/face/bicara",
-      "brone/face/+"
+      "brone/face/bicara"
     ]
   }
 }

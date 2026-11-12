@@ -1,7 +1,6 @@
 [Unit]
 Description=Brone Robot GUI Display Service
-After=network.target mosquitto.service
-Wants=mosquitto.service
+After=network.target
 
 [Service]
 Type=simple

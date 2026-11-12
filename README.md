@@ -32,7 +32,9 @@ LLM / ROS2
     ▼
 Mosquitto Broker (127.0.0.1:1883)
     │
-    │  subscribe: brone/face/ekspresi
+    │  subscribe: robot/expression
+    │             robot/voice_stage
+    │             brone/face/ekspresi (uji manual)
     │             brone/face/viseme
     │             brone/face/bicara
     ▼
@@ -332,7 +334,7 @@ Binary entry point. Hanya berisi satu baris: delegasi ke `brone_gui_lib::run()`.
 | Blok | Deskripsi |
 |---|---|
 | Setup `env_logger` | Log ke stderr dengan level default `info`. |
-| `MqttConfig` | Ambil `BRONE_MQTT_HOST` dan `BRONE_MQTT_PORT` dari environment variable (fallback: `127.0.0.1:1883`). Subscribe ke 3 topic: `brone/face/ekspresi`, `brone/face/viseme`, `brone/face/bicara`. |
+| `MqttConfig` | Ambil `BRONE_MQTT_HOST` dan `BRONE_MQTT_PORT` dari environment variable (fallback: `127.0.0.1:1883`). Subscribe ke topik LLM `robot/expression`, `robot/voice_stage`, dan topik lama `brone/face/ekspresi`, `brone/face/viseme`, `brone/face/bicara`. |
 | `tauri::async_runtime::spawn` | Jalankan `start_mqtt_client()` sebagai async background task Tokio (tidak memblokir UI). |
 | `invoke_handler` | Daftarkan 4 IPC command ke frontend: `verify_mode_password`, `exit_app`, `toggle_fullscreen`, `is_fullscreen`. |
 
@@ -344,8 +346,8 @@ Binary entry point. Hanya berisi satu baris: delegasi ke `brone_gui_lib::run()`.
 | Fungsi / Struct | Deskripsi |
 |---|---|
 | `struct MqttConfig` | Konfigurasi koneksi: `host`, `port`, `client_id`, `topics` (vec). |
-| `impl Default for MqttConfig` | Nilai default: `127.0.0.1:1883`, client ID `brone_gui_display`, 3 topic. |
-| `start_mqtt_client(app_handle, config)` | **Async loop utama MQTT:** (1) buat koneksi dengan `keep_alive=15s` dan `clean_session=true`, (2) subscribe semua topic dari config, (3) loop `eventloop.poll()` — saat menerima `Publish`: parse UTF-8 → parse JSON → validasi via `validasi_pesan()` → emit Tauri event (`brone://ekspresi` / `brone://viseme` / `brone://bicara`). Error koneksi: log warning + sleep 2s (reconnect otomatis). |
+| `impl Default for MqttConfig` | Nilai default: `127.0.0.1:1883`, client ID `brone_gui_display`, 5 topik (2 topik LLM + 3 topik lama). |
+| `start_mqtt_client(app_handle, config)` | **Async loop utama MQTT:** (1) buat koneksi dengan `keep_alive=15s` dan `clean_session=true`, (2) daftarkan ulang semua topik setiap `ConnAck` (langganan hilang saat reconnect), (3) loop `eventloop.poll()` — saat menerima `Publish`: parse UTF-8 → adapter `robot/#` atau parse kontrak lama → validasi via `validasi_pesan()` → emit Tauri event (`brone://ekspresi` / `brone://viseme` / `brone://bicara`). Error koneksi: log warning + sleep 2s (reconnect otomatis). |
 
 **Penting:** Tidak ada `client.publish()` di seluruh file — aplikasi hanya **subscribe**, tidak pernah publish ke MQTT.
 
@@ -482,11 +484,41 @@ Bentuk gerakan mulut bicara dibentuk oleh vokal utama (`A`, `I`, `U`, `E`, `O`) 
 - **Vokal + Bilabial + Vokal** (misal *AMA, APA, ABA*): `VOKAL ➔ REST ➔ VOKAL`.
 - **Khusus Huruf "M"**: `E ➔ REST` (karena pelafalannya *"em"* diawali vokal e lalu ditutup bibir katup).
 
+### Fallback Mulut Bicara (nonaktif default)
+
+Kode cadangan untuk worst case bila jadwal viseme dinamis dari LLM tidak pernah datang. Nonaktif default.
+
+| Config | Default | Fungsi |
+|---|---|---|
+| `bicara.fallbackMulutAktif` | `false` | Aktifkan fallback |
+| `bicara.fallbackIntervalMs` | `140` | Jeda ganti vokal `A/I/U/E/O` |
+| `bicara.fallbackWatchdogMs` | `10000` | Hentikan fallback bila `bicara selesai` tidak datang |
+
+Saat mulai, mulut mengikuti ekspresi aktif dulu. Fallback berhenti saat `bicara selesai` atau saat jadwal viseme asli masuk.
+
 ---
 
 ## Protokol MQTT
 
-### Format Pesan Ekspresi
+### Format Mentah LLM (`robot/#`)
+
+Backend menerjemahkan format `brone-talk` sebelum validasi:
+
+```json
+// robot/expression
+{"expression": "idle"}
+{"expression": "happy"}
+{"expression": "speaking", "duration": 4}
+
+// robot/voice_stage
+{"stage": "llm", "state": "start", "ts": 1762860000.12}
+{"stage": "tts", "state": "start", "ts": 1762860003.45}
+{"stage": "error", "state": "llm"}
+```
+
+Pemetaan: `neutral` → `idle`, `excited` → `happier`, `confused` → `shock`, `speaking` → `bicara mulai`; `llm/start` → `thinking`; `error` → `timeout`; `tts/start` → `bicara mulai`; `tts` dengan state lain → `bicara selesai`. Tabel lengkap di `docs/CONTRACT.md`.
+
+### Format Pesan Ekspresi (kontrak internal / uji manual)
 ```json
 {
   "tipe": "ekspresi",
@@ -516,7 +548,9 @@ Bentuk gerakan mulut bicara dibentuk oleh vokal utama (`A`, `I`, `U`, `E`, `O`) 
 { "tipe": "bicara", "status": "selesai" }
 ```
 
-**Topics:** `brone/face/ekspresi` · `brone/face/viseme` · `brone/face/bicara`
+**Topics LLM:** `robot/expression` · `robot/voice_stage`
+
+**Topics uji manual (kontrak internal):** `brone/face/ekspresi` · `brone/face/viseme` · `brone/face/bicara`
 
 ---
 

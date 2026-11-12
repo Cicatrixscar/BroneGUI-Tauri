@@ -2,6 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Topik yang benar-benar dipakai `brone-talk` (lihat laporan audit 11 Nov 2026).
+pub const TOPIC_LLM_EKSPRESI: &str = "robot/expression";
+pub const TOPIC_LLM_VOICE_STAGE: &str = "robot/voice_stage";
+
 pub const VALID_EMOSI: &[&str] = &[
     // Nama baru (English / LLM format)
     "idle",
@@ -64,6 +68,95 @@ pub enum Pesan {
 
 fn default_intensitas() -> f32 {
     1.0
+}
+
+#[derive(Deserialize)]
+struct LlmExpression {
+    expression: String,
+    /// Durasi audio TTS dalam detik (format `brone-talk`).
+    #[serde(default)]
+    duration: Option<f64>,
+}
+
+#[derive(Deserialize)]
+struct LlmVoiceStage {
+    stage: String,
+    #[serde(default)]
+    state: String,
+}
+
+/// Memetakan nama ekspresi LLM ke nama kanonik GUI (tabel audit bagian 4).
+fn petakan_emosi(nama: &str) -> Option<&'static str> {
+    match nama.to_ascii_lowercase().as_str() {
+        "idle" | "netral" | "neutral" => Some("idle"),
+        "happy" | "senang" => Some("happy"),
+        "happier" | "sangat_senang" => Some("happier"),
+        "happier_transisi" | "sangat_senang_transisi" => Some("happier_transisi"),
+        "sad" | "sedih" => Some("sad"),
+        "cry" | "menangis" => Some("cry"),
+        "shock" | "terkejut" => Some("shock"),
+        "thinking" | "berpikir" => Some("thinking"),
+        "timeout" => Some("timeout"),
+        "excited" => Some("happier"),
+        "confused" => Some("shock"),
+        _ => None,
+    }
+}
+
+fn ekspresi(emosi: &str) -> Pesan {
+    Pesan::Ekspresi {
+        id: String::new(),
+        emosi: emosi.into(),
+        intensitas: 1.0,
+        durasi_ms: None,
+    }
+}
+
+/// Menerjemahkan payload mentah `robot/#` dari LLM ke kontrak internal GUI.
+pub fn pesan_dari_llm(topic: &str, payload: &str) -> Result<Option<Pesan>, String> {
+    if topic == TOPIC_LLM_EKSPRESI {
+        let raw: LlmExpression = serde_json::from_str(payload)
+            .map_err(|e| format!("JSON ekspresi LLM tidak valid: {e}"))?;
+        if raw.expression.eq_ignore_ascii_case("speaking") {
+            // GUI tidak menerima emosi "speaking"; ini penanda mulai bicara.
+            return Ok(Some(Pesan::Bicara {
+                status: "mulai".into(),
+            }));
+        }
+        let emosi = petakan_emosi(&raw.expression)
+            .ok_or_else(|| format!("Ekspresi LLM tidak dikenal: {}", raw.expression))?;
+        let durasi_ms = raw
+            .duration
+            .map(|detik| (detik.max(0.0) * 1000.0) as u32)
+            .filter(|ms| *ms > 0);
+        Ok(Some(Pesan::Ekspresi {
+            id: String::new(),
+            emosi: emosi.into(),
+            intensitas: 1.0,
+            durasi_ms,
+        }))
+    } else if topic == TOPIC_LLM_VOICE_STAGE {
+        let raw: LlmVoiceStage = serde_json::from_str(payload)
+            .map_err(|e| format!("JSON voice_stage LLM tidak valid: {e}"))?;
+        let stage = raw.stage.to_ascii_lowercase();
+        let state = raw.state.to_ascii_lowercase();
+
+        if stage == "error" || state == "error" {
+            return Ok(Some(ekspresi("timeout")));
+        }
+        match (stage.as_str(), state.as_str()) {
+            ("llm", "start") => Ok(Some(ekspresi("thinking"))),
+            ("tts", "start") => Ok(Some(Pesan::Bicara {
+                status: "mulai".into(),
+            })),
+            ("tts", _) => Ok(Some(Pesan::Bicara {
+                status: "selesai".into(),
+            })),
+            _ => Ok(None),
+        }
+    } else {
+        Err(format!("Topik LLM tidak dikenal: {topic}"))
+    }
 }
 
 /// Memvalidasi isi pesan sesuai aturan kontrak di docs/CONTRACT.md.
@@ -175,5 +268,73 @@ mod tests {
 
         let b3 = Pesan::Bicara { status: "berhenti".into() };
         assert!(validasi_pesan(&b3).is_err());
+    }
+
+    #[test]
+    fn test_adapter_ekspresi_llm() {
+        let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"neutral"}"#)
+            .unwrap()
+            .unwrap();
+        assert_eq!(p, ekspresi("idle"));
+
+        let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"excited"}"#)
+            .unwrap()
+            .unwrap();
+        assert_eq!(p, ekspresi("happier"));
+
+        let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"confused"}"#)
+            .unwrap()
+            .unwrap();
+        assert_eq!(p, ekspresi("shock"));
+
+        let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"speaking","duration":4}"#)
+            .unwrap()
+            .unwrap();
+        assert_eq!(p, Pesan::Bicara { status: "mulai".into() });
+
+        let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"happy","duration":2.5}"#)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            p,
+            Pesan::Ekspresi {
+                id: String::new(),
+                emosi: "happy".into(),
+                intensitas: 1.0,
+                durasi_ms: Some(2500),
+            }
+        );
+
+        assert!(pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"marah"}"#).is_err());
+    }
+
+    #[test]
+    fn test_adapter_voice_stage_llm() {
+        let p = pesan_dari_llm(
+            TOPIC_LLM_VOICE_STAGE,
+            r#"{"stage":"llm","state":"start","ts":1.0}"#,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(p, ekspresi("thinking"));
+
+        let p = pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"error","state":"llm"}"#)
+            .unwrap()
+            .unwrap();
+        assert_eq!(p, ekspresi("timeout"));
+
+        let p = pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"tts","state":"start"}"#)
+            .unwrap()
+            .unwrap();
+        assert_eq!(p, Pesan::Bicara { status: "mulai".into() });
+
+        let p = pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"tts","state":"end"}"#)
+            .unwrap()
+            .unwrap();
+        assert_eq!(p, Pesan::Bicara { status: "selesai".into() });
+
+        assert!(pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"vad","state":"start"}"#)
+            .unwrap()
+            .is_none());
     }
 }

@@ -170,6 +170,11 @@ const DEFAULT_CONFIG = {
     maxIntervalMs: 6000,
     durationMs: 350
   },
+  bicara: {
+    fallbackMulutAktif: false,
+    fallbackIntervalMs: 140,
+    fallbackWatchdogMs: 10000
+  },
   mode: {
     mode_statis_aktif: true,
     default_mode: 'dinamis'

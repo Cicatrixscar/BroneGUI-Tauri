@@ -21,6 +21,46 @@ export function initConnector(state, modeManager) {
   let _lastMsgStr = '';
   let _lastMsgTime = 0;
 
+  // Fallback mulut saat bicara. Nonaktif default; hanya untuk worst case bila
+  // jadwal viseme dinamis dari LLM tidak pernah datang. Aktifkan lewat config.
+  let _fallbackTimer = null;
+  let _fallbackWatchdog = null;
+  const fallbackConfig = state?.config?.bicara ?? {};
+  const fallbackAktif = fallbackConfig.fallbackMulutAktif === true;
+  const fallbackIntervalMs = fallbackConfig.fallbackIntervalMs ?? 140;
+  const fallbackWatchdogMs = fallbackConfig.fallbackWatchdogMs ?? 10000;
+
+  function hentikanFallbackMulut(reset = true) {
+    if (_fallbackTimer !== null) {
+      clearInterval(_fallbackTimer);
+      _fallbackTimer = null;
+    }
+    if (_fallbackWatchdog !== null) {
+      clearTimeout(_fallbackWatchdog);
+      _fallbackWatchdog = null;
+    }
+    if (reset) state.setViseme('DIAM');
+  }
+
+  function mulaiFallbackMulut() {
+    if (!fallbackAktif) return;
+    hentikanFallbackMulut(false);
+
+    // Mulai dari bentuk mulut ekspresi aktif, bukan langsung lompat ke vokal.
+    state.setViseme('DIAM');
+
+    const vokal = ['A', 'I', 'U', 'E', 'O'];
+    let index = 0;
+    _fallbackTimer = setInterval(() => {
+      index = (index + 1) % vokal.length;
+      state.setViseme(vokal[index]);
+    }, fallbackIntervalMs);
+
+    _fallbackWatchdog = setTimeout(() => {
+      hentikanFallbackMulut();
+    }, fallbackWatchdogMs);
+  }
+
   /**
    * Membatalkan semua timer viseme yang sedang aktif.
    */
@@ -112,15 +152,19 @@ export function initConnector(state, modeManager) {
       }
     } else if (tipe === 'viseme') {
       const { jadwal } = payload;
+      // Jadwal viseme asli selalu menang atas fallback.
+      hentikanFallbackMulut(false);
       jalankanJadwalViseme(jadwal);
     } else if (tipe === 'bicara') {
       const { status } = payload;
       if (status === 'selesai') {
         // Hentikan jadwal viseme dan reset ke diam
+        hentikanFallbackMulut(false);
         batalkanVisemeTimers();
         state.setViseme('DIAM');
+      } else if (status === 'mulai') {
+        mulaiFallbackMulut();
       }
-      // status 'mulai': tidak perlu aksi khusus di FE
     }
   };
 

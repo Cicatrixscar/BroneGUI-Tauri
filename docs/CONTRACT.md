@@ -1,6 +1,29 @@
 # Kontrak pesan: tim LLM -> connector -> GUI
 
-STATUS: DRAFT. Transport belum diputuskan (lihat PRD Q1, menunggu tim LLM).
+STATUS: MQTT. Transport diputuskan lewat audit integrasi 11 November 2026. Kontrak internal di bawah tetap berlaku; format mentah LLM diterjemahkan oleh adapter di bagian berikut.
+
+## Ingress MQTT dari `brone-talk` (`robot/#`)
+
+Broker Mosquitto berjalan di Jetson (`0.0.0.0:1883`). LLM di NUC mengirim format mentah berikut. Backend Rust (`src-tauri/src/connector/protocol.rs`) menerjemahkannya ke kontrak internal GUI sebelum validasi.
+
+| Topik | Payload LLM | Terjemahan GUI |
+|---|---|---|
+| `robot/expression` | `{"expression":"idle"}` | `emosi=idle` |
+| `robot/expression` | `{"expression":"happy"}` / `sad` | `emosi=happy` / `sad` |
+| `robot/expression` | `{"expression":"neutral"}` | `emosi=idle` |
+| `robot/expression` | `{"expression":"excited"}` | `emosi=happier` |
+| `robot/expression` | `{"expression":"confused"}` | `emosi=shock` |
+| `robot/expression` | `{"expression":"speaking","duration":4}` | `bicara=mulai` (`duration` detik dipakai sebagai `durasi_ms` untuk ekspresi lain) |
+| `robot/voice_stage` | `{"stage":"llm","state":"start"}` | `emosi=thinking` |
+| `robot/voice_stage` | `{"stage":"error","state":"llm"}` | `emosi=timeout` |
+| `robot/voice_stage` | `{"stage":"tts","state":"start"}` | `bicara=mulai` |
+| `robot/voice_stage` | `{"stage":"tts","state":"<selain start>"}` | `bicara=selesai` |
+
+Ekspresi LLM di luar tabel di atas ditolak dan dicatat di log. Nama `speaking` bukan emosi; GUI tidak mengganti ekspresi saat menerimanya.
+
+Catatan: `brone-talk` belum mengirim jadwal viseme. Default: `bicara=mulai` tidak membuat gerakan mulut; mulut mengikuti bentuk ekspresi aktif. Tersedia fallback mulut sintetis di `src/js/connector.js`, tetapi nonaktif default. Aktifkan `bicara.fallbackMulutAktif: true` hanya bila viseme dinamis gagal. Fallback mulai dari bentuk mulut ekspresi aktif, lalu mengganti vokal `A/I/U/E/O` setiap `fallbackIntervalMs`, dan berhenti saat `bicara=selesai` atau setelah `fallbackWatchdogMs`.
+
+Topik lama `brone/face/ekspresi`, `brone/face/viseme`, dan `brone/face/bicara` tetap diterima untuk uji manual dengan kontrak internal di bawah.
 
 Sumber semua pesan adalah tim LLM. Tim LLM mengirim JSON yang sudah berisi timestamp dan viseme. GUI tidak mengubah fonem menjadi viseme.
 
