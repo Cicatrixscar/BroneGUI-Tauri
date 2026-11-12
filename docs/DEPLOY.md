@@ -649,6 +649,8 @@ sudo systemctl status brone-gui.service --no-pager
 
 Cek nama lain kalau masih tidak ketemu: `systemctl list-unit-files | grep -i brone` dan `systemctl --user list-unit-files | grep -i brone`.
 
+> **Sekali saja.** Cek unit dan blok `tee` di atas hanya untuk pemasangan pertama. Pada update berikutnya tidak perlu diulang selama `systemctl cat brone-gui.service` masih menampilkan isi unit. `daemon-reload` juga hanya perlu setelah file unit diedit.
+
 ### 1. Siapkan path binary stabil (sekali saja)
 
 Masih dari folder repo:
@@ -761,6 +763,9 @@ Hapus file `.deb` versi lama secara manual. Jangan simpan semua installer di rob
 ### Aturan singkat
 
 - Semua perintah dari folder repo: `cd ~/brone_face_ascar` dulu.
+- Sekali saja: buat unit systemd, `enable`, dan siapkan `~/brone/bin/brone-gui`.
+- Setiap update: `git pull`, build, copy binary, `restart`.
+- `daemon-reload` hanya setelah file unit diedit, bukan setiap update.
 - Satu build directory: `src-tauri/target`.
 - Satu binary runtime: `~/brone/bin/brone-gui`.
 - Satu cadangan rollback: `~/brone/bin/brone-gui.prev`.
