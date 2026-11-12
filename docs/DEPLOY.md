@@ -533,7 +533,7 @@ Isi dengan template yang sudah disesuaikan untuk Jetson Orin Nano Robot Brone (u
 ```ini
 [Unit]
 Description=Brone Robot Face GUI (Jetson Orin Nano)
-After=network.target graphical-session.target
+After=network.target
 
 [Service]
 Type=simple
@@ -544,16 +544,16 @@ Environment=WEBKIT_DISABLE_DMABUF_RENDERER=1
 Environment=BRONE_MQTT_HOST=127.0.0.1
 Environment=BRONE_MQTT_PORT=1883
 WorkingDirectory=/home/brone/brone_face_ascar
-ExecStart=/home/brone/brone_face_ascar/src-tauri/target/release/brone-gui
-Restart=on-failure
-RestartSec=5s
-StandardOutput=journal
-StandardError=journal
+ExecStart=/home/brone/brone/bin/brone-gui
+Restart=always
+RestartSec=3
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=graphical.target
 ```
 *(Unit GUI tidak memakai `Requires=mosquitto.service`. Ini disengaja: broker di Jetson berjalan tanpa unit `mosquitto.service` (laporan audit 11 Nov 2026). Jika broker MQTT dipindah ke NUC di masa depan, cukup ubah `BRONE_MQTT_HOST` ke IP NUC.)*
+
+*(`ExecStart` menunjuk binary stabil `~/brone/bin/brone-gui`, bukan `src-tauri/target/release/`. Lihat Bab Update untuk cara memasangnya. Kalau unit sudah ada, cukup edit baris `ExecStart`, lalu `sudo systemctl daemon-reload`.)*
 
 Aktifkan service:
 ```bash
@@ -610,6 +610,44 @@ git status -sb
 ```
 
 `pwd` harus menampilkan folder repo, yaitu path yang berakhiran `brone_face_ascar`. Kalau salah folder, `git pull` dan `cargo tauri build` gagal.
+
+Cek dulu unit systemd ada atau belum:
+
+```bash
+systemctl cat brone-gui.service >/dev/null 2>&1 && echo "unit ADA" || echo "unit BELUM ADA"
+```
+
+Kalau hasilnya `unit BELUM ADA`, `systemctl restart brone-gui.service` akan gagal dengan `Unit brone-gui.service not found`. Buat unit sekali saja:
+
+```bash
+sudo tee /etc/systemd/system/brone-gui.service >/dev/null <<'EOF'
+[Unit]
+Description=Brone Robot Face GUI (Jetson Orin Nano)
+After=network.target
+
+[Service]
+Type=simple
+User=brone
+Environment=DISPLAY=:0
+Environment=GDK_BACKEND=x11
+Environment=WEBKIT_DISABLE_DMABUF_RENDERER=1
+Environment=BRONE_MQTT_HOST=127.0.0.1
+Environment=BRONE_MQTT_PORT=1883
+WorkingDirectory=/home/brone/brone_face_ascar
+ExecStart=/home/brone/brone/bin/brone-gui
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now brone-gui.service
+sudo systemctl status brone-gui.service --no-pager
+```
+
+Cek nama lain kalau masih tidak ketemu: `systemctl list-unit-files | grep -i brone` dan `systemctl --user list-unit-files | grep -i brone`.
 
 ### 1. Siapkan path binary stabil (sekali saja)
 
