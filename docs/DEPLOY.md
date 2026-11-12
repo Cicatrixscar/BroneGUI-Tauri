@@ -708,7 +708,7 @@ systemctl --user restart brone-gui.service
 sleep 5
 systemctl --user is-active brone-gui.service
 systemctl --user status brone-gui.service --no-pager
-journalctl --user -u brone-gui.service -n 50 --no-pager
+journalctl --user-unit brone-gui.service -n 50 --no-pager
 ```
 
 `is-active` harus `active`, dan RAM di `status` harus puluhan sampai ratusan MB. Kalau `activating (auto-restart)` atau exit `101`, service gagal start: baca `journalctl` sebelum lanjut.
@@ -865,7 +865,7 @@ sudo systemctl status mosquitto
 
 # Cek log aplikasi (di terminal yang menjalankan brone-gui, cari baris MQTT)
 # Atau via journalctl jika pakai user service:
-journalctl --user -u brone-gui -f
+journalctl --user-unit brone-gui -f
 ```
 
 ---
@@ -904,7 +904,7 @@ mosquitto_sub -h 127.0.0.1 -t "robot/#" -v
 mosquitto_sub -h 127.0.0.1 -t "brone/face/#" -v   # topik legacy
 
 # === LOG APLIKASI (🤖 ROBOT) ===
-journalctl --user -u brone-gui -f
+journalctl --user-unit brone-gui -f
 ```
 
 ### Daftar Ekspresi Valid
