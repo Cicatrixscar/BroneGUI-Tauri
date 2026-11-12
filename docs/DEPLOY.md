@@ -20,6 +20,7 @@
   - [Langkah 6 — Jalankan Aplikasi](#langkah-6--jalankan-aplikasi)
   - [Langkah 7 — Uji Fungsional MQTT](#langkah-7--uji-fungsional-test-mqtt)
   - [Langkah 8 — Autostart systemd](#langkah-8--autostart-opsional)
+- [🔄 Bab Update — Ganti Binary Tanpa Menumpuk File](#-bab-update--ganti-binary-tanpa-menumpuk-file) *(Update Rutin)*
 - [Kontrol Aplikasi (Shortcut & Mode Statis)](#kontrol-aplikasi)
 - [Troubleshooting & Solusi Error](#troubleshooting)
 - [Cheatsheet Referensi Cepat](#cheatsheet-referensi-cepat)
@@ -591,6 +592,122 @@ listener 1883 0.0.0.0
 allow_anonymous true
 ```
 Lalu restart Mosquitto di NUC: `sudo systemctl restart mosquitto`.
+
+---
+
+## 🔄 Bab Update — Ganti Binary Tanpa Menumpuk File
+
+Update bukan install ulang total. Binary Tauri hanya satu file. Jangan menjalankan aplikasi langsung dari `src-tauri/target/release/` karena folder `target/` besar dan menumpuk setiap build.
+
+### 1. Siapkan path binary stabil (sekali saja)
+
+```bash
+mkdir -p ~/brone/bin
+cp -f ~/brone_face_ascar/src-tauri/target/release/brone-gui ~/brone/bin/brone-gui
+chmod +x ~/brone/bin/brone-gui
+```
+
+Ubah unit systemd:
+
+```ini
+WorkingDirectory=/home/brone/brone_face_ascar
+ExecStart=/home/brone/brone/bin/brone-gui
+```
+
+Muat ulang dan restart:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart brone-gui.service
+```
+
+### 2. Prosedur update rutin
+
+```bash
+cd ~/brone_face_ascar
+git pull
+
+# Build ulang; target lama dipakai ulang, tidak membuat folder baru
+cargo tauri build -- -j 2
+
+# Simpan binary lama untuk rollback
+cp -f ~/brone/bin/brone-gui ~/brone/bin/brone-gui.prev
+
+# Pasang binary baru
+cp -f src-tauri/target/release/brone-gui ~/brone/bin/brone-gui.new
+strip ~/brone/bin/brone-gui.new 2>/dev/null || true
+mv -f ~/brone/bin/brone-gui.new ~/brone/bin/brone-gui
+chmod +x ~/brone/bin/brone-gui
+
+# Restart dan cek
+sudo systemctl restart brone-gui.service
+sudo systemctl status brone-gui.service --no-pager
+journalctl -u brone-gui.service -n 50 --no-pager
+```
+
+### 3. Rollback jika update bermasalah
+
+```bash
+sudo systemctl stop brone-gui.service
+cp -f ~/brone/bin/brone-gui.prev ~/brone/bin/brone-gui
+sudo systemctl start brone-gui.service
+```
+
+### 4. Bersihkan artefak build
+
+Cek ukuran dulu:
+
+```bash
+du -sh ~/brone_face_ascar/src-tauri/target
+df -h /
+```
+
+Hapus bundle installer setelah binary baru dicopy:
+
+```bash
+rm -rf ~/brone_face_ascar/src-tauri/target/release/bundle
+```
+
+Kalau disk masih sesak, bersihkan total. Build berikutnya lebih lama:
+
+```bash
+cd ~/brone_face_ascar/src-tauri
+cargo clean
+```
+
+Jangan hapus `~/brone/bin/brone-gui` dan `~/brone/bin/brone-gui.prev`.
+
+Cek ukuran berkala:
+
+```bash
+du -sh ~/brone_face_ascar ~/brone/bin ~/.cargo
+sudo journalctl --disk-usage
+```
+
+Batasi journal jika perlu:
+
+```bash
+sudo journalctl --vacuum-size=200M
+```
+
+### 5. Jika memakai paket `.deb`
+
+`dpkg` menimpa file package lama, jadi tidak menumpuk:
+
+```bash
+sudo dpkg -i brone-gui_*.deb
+sudo apt --fix-broken install
+```
+
+Hapus file `.deb` versi lama secara manual. Jangan simpan semua installer di robot.
+
+### Aturan singkat
+
+- Satu build directory: `~/brone_face_ascar/src-tauri/target`.
+- Satu binary runtime: `~/brone/bin/brone-gui`.
+- Satu cadangan rollback: `~/brone/bin/brone-gui.prev`.
+- Hapus `target/release/bundle` setelah binary dicopy.
+- `cargo clean` hanya saat disk sesak.
 
 ---
 
