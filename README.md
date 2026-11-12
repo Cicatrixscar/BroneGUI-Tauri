@@ -610,13 +610,32 @@ node --test tests/fe/*.test.js
 # Di robot — update kode
 cd ~/brone_face_ascar
 git pull origin main
-cargo tauri build
+cargo tauri build -- -j 2
 
-# Jalankan (wajib GDK_BACKEND=x11 untuk Wayland)
-GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+# Pasang binary stabil (sekali saja)
+mkdir -p ~/brone/bin
+cp -f src-tauri/target/release/brone-gui ~/brone/bin/brone-gui
+chmod +x ~/brone/bin/brone-gui
 ```
 
-Lihat [Deploy Guide lengkap](docs/DEPLOY.md) untuk prasyarat, setup systemd, troubleshooting, dan test MQTT.
+Jalankan dari terminal robot, atau dari sesi `tmux` agar tetap hidup setelah SSH putus:
+
+```bash
+tmux new -s brone
+~/brone/bin/brone-gui
+# Ctrl+B lalu D untuk detach
+```
+
+Kalau dijalankan lewat SSH tanpa sesi grafis, set display dulu:
+
+```bash
+echo "$DISPLAY"                                  # misal :1
+GDK_BACKEND=x11 DISPLAY=:1 ~/brone/bin/brone-gui
+```
+
+Jangan hardcode `DISPLAY=:0`; nomor display bisa `:1`.
+
+Log aplikasi tercetak di terminal yang sama. Untuk autostart, lihat [Deploy Guide lengkap](docs/DEPLOY.md) bagian autostart systemd, prasyarat, troubleshooting, dan test MQTT.
 
 ---
 
@@ -628,4 +647,4 @@ Lihat [Deploy Guide lengkap](docs/DEPLOY.md) untuk prasyarat, setup systemd, tro
 | `BRONE_MQTT_PORT` | `1883` | Port MQTT broker |
 | `RUST_LOG` | `info` | Level log Rust (`debug`, `info`, `warn`, `error`) |
 | `GDK_BACKEND` | — | Set `x11` agar Tauri jalan di Wayland |
-| `DISPLAY` | — | Set `:0` jika berjalan tanpa sesi display aktif |
+| `DISPLAY` | — | Nomor display sesi (`:1`, kadang `:0`). Jangan di-hardcode. |
