@@ -21,6 +21,7 @@
   - [Langkah 7 — Uji Fungsional MQTT](#langkah-7--uji-fungsional-test-mqtt)
   - [Langkah 8 — Autostart systemd](#langkah-8--autostart-opsional)
 - [🔄 Bab Update — Ganti Binary Tanpa Menumpuk File](#-bab-update--ganti-binary-tanpa-menumpuk-file) *(Update Rutin)*
+- [✅ Rekap Konfigurasi Terverifikasi (12 November 2026)](#-rekap-konfigurasi-terverifikasi-12-november-2026) *(Bukti Uji)*
 - [Kontrol Aplikasi (Shortcut & Mode Statis)](#kontrol-aplikasi)
 - [Troubleshooting & Solusi Error](#troubleshooting)
 - [Cheatsheet Referensi Cepat](#cheatsheet-referensi-cepat)
@@ -784,6 +785,94 @@ Hapus file `.deb` versi lama secara manual. Jangan simpan semua installer di rob
 - Satu cadangan rollback: `~/brone/bin/brone-gui.prev`.
 - Hapus `target/release/bundle` setelah binary dicopy.
 - `cargo clean` hanya saat disk sesak.
+
+---
+
+## ✅ Rekap Konfigurasi Terverifikasi (12 November 2026)
+
+Ringkasan hasil uji di Jetson `ubuntu` (user `brone`). Semua di bawah ini sudah terbukti jalan.
+
+### Alamat dan port
+
+| Item | Nilai terverifikasi |
+|---|---|
+| IP Jetson (WiFi LAN) | `192.168.1.244` (`wlP1p1s0`) |
+| IP Jetson (kabel langsung) | `192.168.100.2` (`enP8p1s0`) |
+| Broker MQTT | `mosquitto.service` aktif, listen `0.0.0.0:1883` |
+| Firewall | `ufw` inactive |
+| GUI → broker | `127.0.0.1:1883` (localhost) |
+
+`192.168.1.50` yang muncul di contoh lama bukan IP Jetson sekarang. Ambil ulang dengan `hostname -I` sebelum menguji dari perangkat lain.
+
+### Bukti GUI tersambung ke broker
+
+Jalankan di Jetson:
+
+```bash
+ss -tnp | grep 1883
+```
+
+Harus ada baris seperti:
+
+```text
+127.0.0.1:43160  127.0.0.1:1883  users:(("brone-gui",pid=6266,fd=42))
+```
+
+Selama baris `brone-gui` ada, koneksi MQTT aplikasi hidup.
+
+### Uji terima pesan di layar robot
+
+Di Jetson:
+
+```bash
+mosquitto_pub -h 127.0.0.1 -t robot/expression -m '{"expression":"excited","duration":3}'
+```
+
+Dari NUC (satu jaringan dengan `192.168.1.244`), sudah berhasil:
+
+```bash
+mosquitto_pub -h 192.168.1.244 -t robot/expression -m '{"expression":"excited","duration":3}'
+```
+
+Kalau dari NUC gagal, cek berurutan:
+
+```bash
+nc -vz 192.168.1.244 1883
+sudo ufw status                 # di Jetson
+sudo ss -ltnp | grep 1883       # harus 0.0.0.0:1883
+```
+
+### Service GUI
+
+Unit yang dipakai adalah **user unit**, bukan system unit:
+
+```bash
+systemctl --user status brone-gui.service --no-pager
+```
+
+| Item | Nilai |
+|---|---|
+| Path unit | `~/.config/systemd/user/brone-gui.service` |
+| Binary | `/home/brone/brone/bin/brone-gui` (9.5 MB) |
+| Status saat diuji | `active (running)`, RAM ±120 MB, 42 tasks |
+| Log | `journalctl --user-unit brone-gui.service -n 50 --no-pager` |
+
+Alasan tidak memakai system unit: system unit harus menulis `Environment=DISPLAY=:0`, sedangkan sesi Jetson memakai `:1`. Gejalanya `Failed to initialize GTK` lalu exit `101`.
+
+### Jebakan yang sudah terlewati
+
+- `systemctl restart brone-gui.service` gagal `Unit not found` karena unit belum ada. Buat sekali, lihat bab autostart.
+- `ss -ltnp | grep 1833` bukan `1883`. Salah ketik membuat hasil kosong.
+- `systemctl status ... --no pager` salah; harus `--no-pager`.
+- `DISPLAY=:0` hardcode gagal. Pakai user unit, atau ambil `echo $DISPLAY`.
+- Error mosquitto_pub `Bad file descriptor` muncul karena alamat salah/IP berbeda, bukan karena GUI.
+
+### Sisa yang belum diverifikasi
+
+- `loginctl enable-linger brone` (autostart tanpa login).
+- Uji reboot penuh.
+- Reaksi wajah terhadap pesan dari NUC (publish berhasil, perubahan layar belum dicatat).
+- Auth/ACL broker: sekarang `allow_anonymous true`, tanpa password.
 
 ---
 
