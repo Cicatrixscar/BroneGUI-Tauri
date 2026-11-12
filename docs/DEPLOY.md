@@ -245,12 +245,12 @@ ls -lh src-tauri/target/release/brone-gui
 🤖 **ROBOT** — Wajib pakai `GDK_BACKEND=x11` agar Tauri bekerja di Wayland:
 
 ```bash
-GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+GDK_BACKEND=x11 ./src-tauri/target/release/brone-gui
 ```
 
 Jika ingin langsung fullscreen dari awal:
 ```bash
-GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui &
+GDK_BACKEND=x11 ./src-tauri/target/release/brone-gui &
 # Lalu tekan F11 di keyboard/layar robot
 ```
 
@@ -258,7 +258,7 @@ GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui &
 > Jalankan di `tmux` atau `screen` agar sesi tetap hidup setelah SSH disconnect:
 > ```bash
 > tmux new -s brone
-> GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+> GDK_BACKEND=x11 ./src-tauri/target/release/brone-gui
 > # Ctrl+B lalu D untuk detach
 > ```
 
@@ -341,44 +341,43 @@ wsl mosquitto_pub -h 192.168.1.50 -t "brone/face/ekspresi" -m '{"tipe":"ekspresi
 
 ## Langkah 8 — Autostart (Opsional)
 
-🤖 **ROBOT** — Agar GUI otomatis muncul saat robot dinyalakan:
+🤖 **ROBOT** — Agar GUI otomatis muncul saat robot dinyalakan, pakai user service. Template lengkap ada di [Bagian 7 — Autostart Jetson](#7-setup-autostart-systemd-khusus-jetson).
 
 ```bash
-# Ganti YOUR_USERNAME dengan username kamu (cek dengan: whoami)
-sudo nano /etc/systemd/system/brone-gui.service
+mkdir -p ~/.config/systemd/user
+nano ~/.config/systemd/user/brone-gui.service
 ```
 
-Isi file:
+Isi file (ganti `YOUR_USERNAME` dengan hasil `whoami`):
 ```ini
 [Unit]
 Description=Brone Robot Face GUI
-After=network.target graphical-session.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
-User=YOUR_USERNAME
-Environment=DISPLAY=:0
-Environment=GDK_BACKEND=x11
+Environment=WEBKIT_DISABLE_DMABUF_RENDERER=1
 Environment=BRONE_MQTT_HOST=127.0.0.1
 Environment=BRONE_MQTT_PORT=1883
 WorkingDirectory=/home/YOUR_USERNAME/brone_face_ascar
-ExecStart=/home/YOUR_USERNAME/brone_face_ascar/src-tauri/target/release/brone-gui
-Restart=on-failure
-RestartSec=5s
-StandardOutput=journal
-StandardError=journal
+ExecStart=/home/YOUR_USERNAME/brone/bin/brone-gui
+Restart=always
+RestartSec=3
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=default.target
 ```
 
 Aktifkan:
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable brone-gui.service
-sudo systemctl start brone-gui.service
-sudo systemctl status brone-gui.service
+sudo loginctl enable-linger YOUR_USERNAME
+systemctl --user daemon-reload
+systemctl --user enable --now brone-gui.service
+systemctl --user status brone-gui.service --no-pager
 ```
+
+Jangan menulis `Environment=DISPLAY=:0` di system unit. Nomor display sesi bisa `:1`, dan GTK akan gagal init (`exit 101`).
 
 ---
 
@@ -503,7 +502,7 @@ Aplikasi Brone-GUI di Jetson berlangganan topik LLM `robot/expression` dan `robo
 Jalankan perintah ini di Jetson:
 ```bash
 cd ~/brone_face_ascar
-GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+GDK_BACKEND=x11 ./src-tauri/target/release/brone-gui
 ```
 
 > [!IMPORTANT]
@@ -511,35 +510,34 @@ GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
 > Driver grafis Nvidia Tegra di Jetson terkadang memiliki ketidakcocokan dengan akselerasi DMA-BUF pada WebKitGTK yang menyebabkan window muncul tapi isinya hitam polos.  
 > Jika ini terjadi, **cukup tambahkan flag `WEBKIT_DISABLE_DMABUF_RENDERER=1`**:
 > ```bash
-> WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+> WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11 ./src-tauri/target/release/brone-gui
 > ```
 
 Jika broker MQTT berada di Intel NUC:
 ```bash
-WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11 DISPLAY=:0 BRONE_MQTT_HOST=192.168.1.50 ./src-tauri/target/release/brone-gui
+WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11 BRONE_MQTT_HOST=192.168.1.50 ./src-tauri/target/release/brone-gui
 ```
 
 ---
 
 ### 7. Setup Autostart systemd Khusus Jetson
 
-Agar aplikasi otomatis tampil di layar robot saat Jetson dinyalakan:
+Agar aplikasi otomatis tampil di layar robot saat Jetson dinyalakan, pakai **user service** (`systemctl --user`). User service mewarisi `DISPLAY` dan `XAUTHORITY` dari sesi, jadi nomor display tidak perlu ditulis manual.
 
 ```bash
-sudo nano /etc/systemd/system/brone-gui.service
+mkdir -p ~/.config/systemd/user
+nano ~/.config/systemd/user/brone-gui.service
 ```
 
 Isi dengan template yang sudah disesuaikan untuk Jetson Orin Nano Robot Brone (username `brone`, broker MQTT di Jetson sendiri port `1883`):
 ```ini
 [Unit]
 Description=Brone Robot Face GUI (Jetson Orin Nano)
-After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
-User=brone
-Environment=DISPLAY=:0
-Environment=GDK_BACKEND=x11
 Environment=WEBKIT_DISABLE_DMABUF_RENDERER=1
 Environment=BRONE_MQTT_HOST=127.0.0.1
 Environment=BRONE_MQTT_PORT=1883
@@ -549,19 +547,29 @@ Restart=always
 RestartSec=3
 
 [Install]
-WantedBy=graphical.target
+WantedBy=default.target
 ```
 *(Unit GUI tidak memakai `Requires=mosquitto.service`. Ini disengaja: broker di Jetson berjalan tanpa unit `mosquitto.service` (laporan audit 11 Nov 2026). Jika broker MQTT dipindah ke NUC di masa depan, cukup ubah `BRONE_MQTT_HOST` ke IP NUC.)*
 
-*(`ExecStart` menunjuk binary stabil `~/brone/bin/brone-gui`, bukan `src-tauri/target/release/`. Lihat Bab Update untuk cara memasangnya. Kalau unit sudah ada, cukup edit baris `ExecStart`, lalu `sudo systemctl daemon-reload`.)*
+*(`ExecStart` menunjuk binary stabil `~/brone/bin/brone-gui`, bukan `src-tauri/target/release/`. Lihat Bab Update untuk cara memasangnya. Kalau unit sudah ada, cukup edit baris `ExecStart`, lalu `systemctl --user daemon-reload`.)*
 
 Aktifkan service:
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable brone-gui.service
-sudo systemctl start brone-gui.service
-sudo systemctl status brone-gui.service
+sudo loginctl enable-linger brone
+systemctl --user daemon-reload
+systemctl --user enable --now brone-gui.service
+systemctl --user status brone-gui.service --no-pager
 ```
+
+Jangan pakai system unit (`/etc/systemd/system/`) untuk GUI. Unit itu perlu `Environment=DISPLAY=:0`, sedangkan sesi Jetson bisa memakai `:1`. Gejalanya: `Failed to initialize GTK`, exit `101`, restart berulang.
+
+Kalau tetap memakai system unit, ambil display yang benar dari sesi aktif:
+
+```bash
+loginctl show-session $(loginctl list-sessions --no-legend | awk '/brone/{print $1; exit}') -p Display -p Type
+```
+
+Pakai nomor itu di `Environment=DISPLAY`. Nomor bisa berubah, jadi user service lebih aman.
 
 ---
 
@@ -572,7 +580,7 @@ sudo systemctl status brone-gui.service
 **Solusi:** Jalankan dengan menonaktifkan DMA-BUF:
 ```bash
 export WEBKIT_DISABLE_DMABUF_RENDERER=1
-GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+GDK_BACKEND=x11 ./src-tauri/target/release/brone-gui
 ```
 Jika masih blank, tambahkan juga: `export WEBKIT_DISABLE_COMPOSITING_MODE=1`.
 
@@ -611,25 +619,24 @@ git status -sb
 
 `pwd` harus menampilkan folder repo, yaitu path yang berakhiran `brone_face_ascar`. Kalau salah folder, `git pull` dan `cargo tauri build` gagal.
 
-Cek dulu unit systemd ada atau belum:
+Cek dulu unit ada atau belum:
 
 ```bash
-systemctl cat brone-gui.service >/dev/null 2>&1 && echo "unit ADA" || echo "unit BELUM ADA"
+systemctl --user cat brone-gui.service >/dev/null 2>&1 && echo "unit ADA" || echo "unit BELUM ADA"
 ```
 
-Kalau hasilnya `unit BELUM ADA`, `systemctl restart brone-gui.service` akan gagal dengan `Unit brone-gui.service not found`. Buat unit sekali saja:
+Kalau hasilnya `unit BELUM ADA`, `systemctl --user restart brone-gui.service` akan gagal dengan `Unit brone-gui.service not found`. Buat unit sekali saja. Pakai user service supaya `DISPLAY` ikut sesi dan tidak perlu ditulis manual:
 
 ```bash
-sudo tee /etc/systemd/system/brone-gui.service >/dev/null <<'EOF'
+mkdir -p ~/.config/systemd/user
+tee ~/.config/systemd/user/brone-gui.service >/dev/null <<'EOF'
 [Unit]
 Description=Brone Robot Face GUI (Jetson Orin Nano)
-After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
-User=brone
-Environment=DISPLAY=:0
-Environment=GDK_BACKEND=x11
 Environment=WEBKIT_DISABLE_DMABUF_RENDERER=1
 Environment=BRONE_MQTT_HOST=127.0.0.1
 Environment=BRONE_MQTT_PORT=1883
@@ -639,17 +646,18 @@ Restart=always
 RestartSec=3
 
 [Install]
-WantedBy=graphical.target
+WantedBy=default.target
 EOF
 
-sudo systemctl daemon-reload
-sudo systemctl enable --now brone-gui.service
-sudo systemctl status brone-gui.service --no-pager
+sudo loginctl enable-linger brone
+systemctl --user daemon-reload
+systemctl --user enable --now brone-gui.service
+systemctl --user status brone-gui.service --no-pager
 ```
 
-Cek nama lain kalau masih tidak ketemu: `systemctl list-unit-files | grep -i brone` dan `systemctl --user list-unit-files | grep -i brone`.
+Cek nama lain kalau masih tidak ketemu: `systemctl --user list-unit-files | grep -i brone`.
 
-> **Sekali saja.** Cek unit dan blok `tee` di atas hanya untuk pemasangan pertama. Pada update berikutnya tidak perlu diulang selama `systemctl cat brone-gui.service` masih menampilkan isi unit. `daemon-reload` juga hanya perlu setelah file unit diedit.
+> **Sekali saja.** Cek unit dan blok `tee` di atas hanya untuk pemasangan pertama. Pada update berikutnya tidak perlu diulang selama `systemctl --user cat brone-gui.service` masih menampilkan isi unit. `daemon-reload` juga hanya perlu setelah file unit diedit.
 
 ### 1. Siapkan path binary stabil (sekali saja)
 
@@ -671,8 +679,8 @@ ExecStart=/home/brone/brone/bin/brone-gui
 Muat ulang dan restart:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl restart brone-gui.service
+systemctl --user daemon-reload
+systemctl --user restart brone-gui.service
 ```
 
 ### 2. Prosedur update rutin
@@ -696,17 +704,21 @@ mv -f ~/brone/bin/brone-gui.new ~/brone/bin/brone-gui
 chmod +x ~/brone/bin/brone-gui
 
 # Restart dan cek
-sudo systemctl restart brone-gui.service
-sudo systemctl status brone-gui.service --no-pager
-journalctl -u brone-gui.service -n 50 --no-pager
+systemctl --user restart brone-gui.service
+sleep 5
+systemctl --user is-active brone-gui.service
+systemctl --user status brone-gui.service --no-pager
+journalctl --user -u brone-gui.service -n 50 --no-pager
 ```
+
+`is-active` harus `active`, dan RAM di `status` harus puluhan sampai ratusan MB. Kalau `activating (auto-restart)` atau exit `101`, service gagal start: baca `journalctl` sebelum lanjut.
 
 ### 3. Rollback jika update bermasalah
 
 ```bash
-sudo systemctl stop brone-gui.service
+systemctl --user stop brone-gui.service
 cp -f ~/brone/bin/brone-gui.prev ~/brone/bin/brone-gui
-sudo systemctl start brone-gui.service
+systemctl --user start brone-gui.service
 ```
 
 ### 4. Bersihkan artefak build
@@ -763,6 +775,7 @@ Hapus file `.deb` versi lama secara manual. Jangan simpan semua installer di rob
 ### Aturan singkat
 
 - Semua perintah dari folder repo: `cd ~/brone_face_ascar` dulu.
+- Service GUI pakai user unit: `systemctl --user ...`, bukan `sudo systemctl ...`.
 - Sekali saja: buat unit systemd, `enable`, dan siapkan `~/brone/bin/brone-gui`.
 - Setiap update: `git pull`, build, copy binary, `restart`.
 - `daemon-reload` hanya setelah file unit diedit, bukan setiap update.
@@ -840,7 +853,7 @@ sudo apt install -y libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-de
 # Pastikan DISPLAY benar
 echo $DISPLAY   # Harus ada isinya, misal :0
 # Jalankan dengan env lengkap:
-GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+GDK_BACKEND=x11 ./src-tauri/target/release/brone-gui
 ```
 
 ---
@@ -851,8 +864,8 @@ GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
 sudo systemctl status mosquitto
 
 # Cek log aplikasi (di terminal yang menjalankan brone-gui, cari baris MQTT)
-# Atau via journalctl jika pakai systemd:
-sudo journalctl -u brone-gui -f
+# Atau via journalctl jika pakai user service:
+journalctl --user -u brone-gui -f
 ```
 
 ---
@@ -862,7 +875,7 @@ sudo journalctl -u brone-gui -f
 # Dari sesi SSH lain:
 pkill brone-gui
 # atau
-sudo systemctl stop brone-gui
+systemctl --user stop brone-gui
 ```
 
 ---
@@ -875,18 +888,23 @@ cd ~/brone_face_ascar
 git pull origin main
 cargo tauri build
 
-# === JALANKAN (🤖 ROBOT) ===
-GDK_BACKEND=x11 DISPLAY=:0 ./src-tauri/target/release/brone-gui
+# === JALANKAN MANUAL (🤖 ROBOT) ===
+~/brone/bin/brone-gui
+
+# === SERVICE (🤖 ROBOT) ===
+systemctl --user restart brone-gui.service
+systemctl --user status brone-gui.service --no-pager
 
 # === TEST MQTT (🤖 ROBOT) ===
-mosquitto_pub -h 127.0.0.1 -t "brone/face/ekspresi" \
-  -m '{"tipe":"ekspresi","emosi":"happy","durasi_ms":3000}'
+mosquitto_pub -h 127.0.0.1 -t "robot/expression" \
+  -m '{"expression":"excited","duration":3}'
 
 # === MONITOR MQTT (🤖 ROBOT) ===
-mosquitto_sub -h 127.0.0.1 -t "brone/face/#" -v
+mosquitto_sub -h 127.0.0.1 -t "robot/#" -v
+mosquitto_sub -h 127.0.0.1 -t "brone/face/#" -v   # topik legacy
 
 # === LOG APLIKASI (🤖 ROBOT) ===
-sudo journalctl -u brone-gui -f
+journalctl --user -u brone-gui -f
 ```
 
 ### Daftar Ekspresi Valid
