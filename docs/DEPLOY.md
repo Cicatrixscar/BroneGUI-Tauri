@@ -599,11 +599,25 @@ Lalu restart Mosquitto di NUC: `sudo systemctl restart mosquitto`.
 
 Update bukan install ulang total. Binary Tauri hanya satu file. Jangan menjalankan aplikasi langsung dari `src-tauri/target/release/` karena folder `target/` besar dan menumpuk setiap build.
 
+### 0. Jalankan dari folder repo
+
+Semua perintah di bab ini dijalankan dari folder clone repo. Masuk dulu:
+
+```bash
+cd ~/brone_face_ascar
+pwd
+git status -sb
+```
+
+`pwd` harus menampilkan folder repo, yaitu path yang berakhiran `brone_face_ascar`. Kalau salah folder, `git pull` dan `cargo tauri build` gagal.
+
 ### 1. Siapkan path binary stabil (sekali saja)
+
+Masih dari folder repo:
 
 ```bash
 mkdir -p ~/brone/bin
-cp -f ~/brone_face_ascar/src-tauri/target/release/brone-gui ~/brone/bin/brone-gui
+cp -f src-tauri/target/release/brone-gui ~/brone/bin/brone-gui
 chmod +x ~/brone/bin/brone-gui
 ```
 
@@ -622,6 +636,8 @@ sudo systemctl restart brone-gui.service
 ```
 
 ### 2. Prosedur update rutin
+
+Dari folder repo:
 
 ```bash
 cd ~/brone_face_ascar
@@ -655,17 +671,17 @@ sudo systemctl start brone-gui.service
 
 ### 4. Bersihkan artefak build
 
-Cek ukuran dulu:
+Dari folder repo. Cek ukuran dulu:
 
 ```bash
-du -sh ~/brone_face_ascar/src-tauri/target
+du -sh src-tauri/target
 df -h /
 ```
 
 Hapus bundle installer setelah binary baru dicopy:
 
 ```bash
-rm -rf ~/brone_face_ascar/src-tauri/target/release/bundle
+rm -rf src-tauri/target/release/bundle
 ```
 
 Kalau disk masih sesak, bersihkan total. Build berikutnya lebih lama:
@@ -673,6 +689,7 @@ Kalau disk masih sesak, bersihkan total. Build berikutnya lebih lama:
 ```bash
 cd ~/brone_face_ascar/src-tauri
 cargo clean
+cd ~/brone_face_ascar
 ```
 
 Jangan hapus `~/brone/bin/brone-gui` dan `~/brone/bin/brone-gui.prev`.
@@ -680,7 +697,7 @@ Jangan hapus `~/brone/bin/brone-gui` dan `~/brone/bin/brone-gui.prev`.
 Cek ukuran berkala:
 
 ```bash
-du -sh ~/brone_face_ascar ~/brone/bin ~/.cargo
+du -sh . ~/brone/bin ~/.cargo
 sudo journalctl --disk-usage
 ```
 
@@ -692,18 +709,21 @@ sudo journalctl --vacuum-size=200M
 
 ### 5. Jika memakai paket `.deb`
 
-`dpkg` menimpa file package lama, jadi tidak menumpuk:
+`dpkg` menimpa file package lama, jadi tidak menumpuk. Paket hasil build ada di `src-tauri/target/release/bundle/deb/`:
 
 ```bash
+cd ~/brone_face_ascar/src-tauri/target/release/bundle/deb
 sudo dpkg -i brone-gui_*.deb
 sudo apt --fix-broken install
+cd ~/brone_face_ascar
 ```
 
 Hapus file `.deb` versi lama secara manual. Jangan simpan semua installer di robot.
 
 ### Aturan singkat
 
-- Satu build directory: `~/brone_face_ascar/src-tauri/target`.
+- Semua perintah dari folder repo: `cd ~/brone_face_ascar` dulu.
+- Satu build directory: `src-tauri/target`.
 - Satu binary runtime: `~/brone/bin/brone-gui`.
 - Satu cadangan rollback: `~/brone/bin/brone-gui.prev`.
 - Hapus `target/release/bundle` setelah binary dicopy.
