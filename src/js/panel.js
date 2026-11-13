@@ -108,7 +108,7 @@ export class ControlPanel {
     const exprContainer = this.panelEl.querySelector('#expr-buttons');
     const exprMap = this.keymap.expressions ?? {
       '1': 'idle',
-      '2': 'thinking',
+      '2': 'confused',
       '3': 'sad',
       '4': 'cry',
       '5': 'shock',

@@ -279,7 +279,7 @@ GDK_BACKEND=x11 ./src-tauri/target/release/brone-gui &
 mosquitto_pub -h 127.0.0.1 -t "robot/expression" -m '{"expression":"happy"}'
 mosquitto_pub -h 127.0.0.1 -t "robot/expression" -m '{"expression":"idle"}'
 
-# Test status LLM: wajah thinking, lalu timeout bila error
+# Test status LLM: wajah confused, lalu timeout bila error
 mosquitto_pub -h 127.0.0.1 -t "robot/voice_stage" -m '{"stage":"llm","state":"start"}'
 mosquitto_pub -h 127.0.0.1 -t "robot/voice_stage" -m '{"stage":"error","state":"llm"}'
 
@@ -319,9 +319,9 @@ mosquitto_pub -h 127.0.0.1 -t "brone/face/ekspresi" \
 mosquitto_pub -h 127.0.0.1 -t "brone/face/ekspresi" \
   -m '{"tipe":"ekspresi","emosi":"shock","durasi_ms":3000}'
 
-# Test thinking
+# Test confused
 mosquitto_pub -h 127.0.0.1 -t "brone/face/ekspresi" \
-  -m '{"tipe":"ekspresi","emosi":"thinking","durasi_ms":5000}'
+  -m '{"tipe":"ekspresi","emosi":"confused","durasi_ms":5000}'
 
 # Test timeout
 mosquitto_pub -h 127.0.0.1 -t "brone/face/ekspresi" \
@@ -888,7 +888,7 @@ Alasan tidak memakai system unit: system unit harus menulis `Environment=DISPLAY
 
 **Mode Statis — Panel Keyboard:**
 
-- **Ekspresi (1–9):** `1` idle · `2` thinking · `3` sad · `4` cry · `5` shock · `6` happy · `7` happier · `8` timeout · `9` happier_transisi
+- **Ekspresi (1–9):** `1` idle · `2` confused · `3` sad · `4` cry · `5` shock · `6` happy · `7` happier · `8` timeout · `9` happier_transisi
 - **Viseme Mulut:** `A`, `I`, `U`, `E`, `O`, `R` (REST/katup bibir), `D` (DIAM)
 
 ---
@@ -1007,5 +1007,5 @@ journalctl --user-unit brone-gui -f
 | `sad` | `sedih` |
 | `cry` | `menangis` |
 | `shock` | `terkejut` |
-| `thinking` | `berpikir` |
+| `confused` | `berpikir` |
 | `timeout` | *(tidak ada alias)* |

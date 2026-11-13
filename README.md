@@ -96,19 +96,19 @@ brone-gui/
 │   │   ├── TIMEOUT EYE RIGHT.svg # Mata spiral kanan (timeout)
 │   │   ├── SAD EYE LEFT/RIGHT.svg
 │   │   ├── CRY EYE LEFT/RIGHT.svg
-│   │   ├── LOAD EYE.svg          # Mata kiri thinking (berputar / loading)
+│   │   ├── LOAD EYE.svg          # Mata kiri confused (berputar / loading)
 │   │   ├── HAPPIER.svg           # Mulut happy/happier/happier_transisi
 │   │   ├── IDLE.svg              # Mulut idle/netral
 │   │   ├── SAD MOUTH.svg
 │   │   ├── CRY MOUTH.svg
 │   │   ├── SHOCK.svg
-│   │   ├── LOAD MOUTH.svg        # Mulut thinking
+│   │   ├── LOAD MOUTH.svg        # Mulut confused
 │   │   ├── TIMEOUT MOUTH.svg     # Mulut timeout (bergelombang)
 │   │   ├── BLUSH.svg             # Pipi merah muda (happier)
 │   │   ├── DRIPPING TEARS.svg    # Air mata kiri (cry)
 │   │   ├── DRIPPING TEARS RIGHT.svg
 │   │   ├── TANDA SERU.svg        # Efek "!" (shock)
-│   │   ├── TANDA TANYA.svg       # Efek "?" (thinking)
+│   │   ├── TANDA TANYA.svg       # Efek "?" (confused)
 │   │   ├── BRONE_FACE_BACKSIDE.svg # Latar belakang wajah
 │   │   └── viseme/               # Aset mulut viseme dinamis (A, I, U, E, O, REST)
 │   │       ├── A.svg, E.svg, I.svg, O.svg, U.svg, REST.svg
@@ -224,7 +224,7 @@ Halaman utama. Mendefinisikan struktur SVG wajah dengan layer-layer:
 | `setMouthToFlat()` | Pasang aset mulut paling datar (`REST.svg` / `P,B,M.svg`) selama titik tengah transisi. |
 | `updateEyes(emosi)` | Ganti `href`, `x`, `y`, `width`, `height` pada `#eye-l` dan `#eye-r` sesuai ekspresi. |
 | `clearEmotionOverlays()` | Sembunyikan blush, air mata (pause animasi), efek simbol. Hapus transform rotasi timeout dari mata. |
-| `updateEmotionOverlays(emosi)` | Tampilkan overlay sesuai ekspresi: blush (happier), air mata + animasi aliran (cry), simbol melayang (shock/thinking). |
+| `updateEmotionOverlays(emosi)` | Tampilkan overlay sesuai ekspresi: blush (happier), air mata + animasi aliran (cry), simbol melayang (shock/confused). |
 | `updateEmotion(emosi)` | Shortcut: `updateEyes()` + `updateEmotionOverlays()`. |
 | `updateMouth(emosi, viseme)` | Jika viseme aktif (bukan DIAM): pakai aset viseme. Jika DIAM: pakai mulut ekspresi. Animasi fade-in kecil (scale 0.94→1.0). |
 
@@ -459,7 +459,7 @@ Dikonsumsi oleh `main.js` saat startup. Berisi:
 | `sad` | `sedih` | SAD EYE LEFT/RIGHT.svg | SAD MOUTH.svg | — |
 | `cry` | `menangis` | CRY EYE LEFT/RIGHT.svg | CRY MOUTH.svg | Air mata + animasi aliran |
 | `shock` | `terkejut` | MATA.svg | SHOCK.svg | Tanda seru melayang |
-| `thinking` | `berpikir` | LOAD EYE.svg (kiri) + MATA.svg (kanan) | LOAD MOUTH.svg | Tanda tanya melayang |
+| `confused` | `berpikir` | LOAD EYE.svg (kiri) + MATA.svg (kanan) | LOAD MOUTH.svg | Tanda tanya melayang |
 | `timeout` | — | TIMEOUT EYE LEFT/RIGHT.svg (berputar) | TIMEOUT MOUTH.svg | Rotasi berkelanjutan |
 
 ### Viseme Dinamis (Mulut Bicara)
@@ -516,7 +516,7 @@ Backend menerjemahkan format `brone-talk` sebelum validasi:
 {"stage": "error", "state": "llm"}
 ```
 
-Pemetaan: `neutral` → `idle`, `excited` → `happier`, `confused` → `shock`, `speaking` → `bicara mulai`; `llm/start` → `thinking`; `error` → `timeout`; `tts/start` → `bicara mulai`; `tts` dengan state lain → `bicara selesai`. Tabel lengkap di `docs/CONTRACT.md`.
+Pemetaan: `neutral` → `idle`, `excited` → `happier`, `confused` → `confused`, `speaking` → `bicara mulai`; `llm/start` → `confused`; `error` → `timeout`; `tts/start` → `bicara mulai`; `tts` dengan state lain → `bicara selesai`. Tabel lengkap di `docs/CONTRACT.md`.
 
 ### Format Pesan Ekspresi (kontrak internal / uji manual)
 ```json

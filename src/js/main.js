@@ -65,7 +65,7 @@ const DEFAULT_CONFIG = {
       mouth: { asset: 'assets/SHOCK.svg', x: 322, y: 303, w: 156, h: 148 },
       effect: { asset: 'assets/TANDA SERU.svg', x: 687, y: 52, w: 77, h: 88 }
     },
-    thinking: {
+    confused: {
       eyeL: { asset: 'assets/LOAD EYE.svg', x: 103, y: 167, w: 142, h: 145, cx: 174, cy: 239.5 },
       eyeR: { asset: 'assets/MATA.svg', x: 556, y: 154, w: 129, h: 171, cx: 620.5, cy: 239.5 },
       mouth: { asset: 'assets/LOAD MOUTH.svg', x: 264.5, y: 338, w: 271, h: 52 },
@@ -186,7 +186,7 @@ const DEFAULT_KEYMAP = {
   togglePanel: 'F3',
   expressions: {
     '1': 'idle',
-    '2': 'thinking',
+    '2': 'confused',
     '3': 'sad',
     '4': 'cry',
     '5': 'shock',

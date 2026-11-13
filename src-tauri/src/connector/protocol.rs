@@ -15,7 +15,7 @@ pub const VALID_EMOSI: &[&str] = &[
     "sad",
     "cry",
     "shock",
-    "thinking",
+    "confused",
     "timeout",
     // Alias lama (Indonesian) untuk kompatibilitas
     "netral",
@@ -95,10 +95,9 @@ fn petakan_emosi(nama: &str) -> Option<&'static str> {
         "sad" | "sedih" => Some("sad"),
         "cry" | "menangis" => Some("cry"),
         "shock" | "terkejut" => Some("shock"),
-        "thinking" | "berpikir" => Some("thinking"),
+        "confused" | "thinking" | "berpikir" => Some("confused"),
         "timeout" => Some("timeout"),
         "excited" => Some("happier"),
-        "confused" => Some("shock"),
         _ => None,
     }
 }
@@ -145,7 +144,7 @@ pub fn pesan_dari_llm(topic: &str, payload: &str) -> Result<Option<Pesan>, Strin
             return Ok(Some(ekspresi("timeout")));
         }
         match (stage.as_str(), state.as_str()) {
-            ("llm", "start") => Ok(Some(ekspresi("thinking"))),
+            ("llm", "start") => Ok(Some(ekspresi("confused"))),
             ("tts", "start") => Ok(Some(Pesan::Bicara {
                 status: "mulai".into(),
             })),
@@ -285,7 +284,7 @@ mod tests {
         let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"confused"}"#)
             .unwrap()
             .unwrap();
-        assert_eq!(p, ekspresi("shock"));
+        assert_eq!(p, ekspresi("confused"));
 
         let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"speaking","duration":4}"#)
             .unwrap()
@@ -316,7 +315,7 @@ mod tests {
         )
         .unwrap()
         .unwrap();
-        assert_eq!(p, ekspresi("thinking"));
+        assert_eq!(p, ekspresi("confused"));
 
         let p = pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"error","state":"llm"}"#)
             .unwrap()

@@ -8,7 +8,8 @@ const EMOTION_ALIASES = {
   sedih: 'sad',
   menangis: 'cry',
   terkejut: 'shock',
-  berpikir: 'thinking',
+  berpikir: 'confused',
+  thinking: 'confused',
   sangat_senang_transisi: 'happier_transisi'
 };
 

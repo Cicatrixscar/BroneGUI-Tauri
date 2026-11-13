@@ -12,9 +12,9 @@ Broker Mosquitto berjalan di Jetson (`0.0.0.0:1883`). LLM di NUC mengirim format
 | `robot/expression` | `{"expression":"happy"}` / `sad` | `emosi=happy` / `sad` |
 | `robot/expression` | `{"expression":"neutral"}` | `emosi=idle` |
 | `robot/expression` | `{"expression":"excited"}` | `emosi=happier` |
-| `robot/expression` | `{"expression":"confused"}` | `emosi=shock` |
+| `robot/expression` | `{"expression":"confused"}` | `emosi=confused` |
 | `robot/expression` | `{"expression":"speaking","duration":4}` | `bicara=mulai` (`duration` detik dipakai sebagai `durasi_ms` untuk ekspresi lain) |
-| `robot/voice_stage` | `{"stage":"llm","state":"start"}` | `emosi=thinking` |
+| `robot/voice_stage` | `{"stage":"llm","state":"start"}` | `emosi=confused` |
 | `robot/voice_stage` | `{"stage":"error","state":"llm"}` | `emosi=timeout` |
 | `robot/voice_stage` | `{"stage":"tts","state":"start"}` | `bicara=mulai` |
 | `robot/voice_stage` | `{"stage":"tts","state":"<selain start>"}` | `bicara=selesai` |
@@ -44,7 +44,7 @@ Nilai `emosi`:
 | Nilai | Gambar acuan | Keterangan |
 |---|---|---|
 | `netral` | BRONE_FACE_BASE | Idle |
-| `berpikir` | BRONE_FACE_THINKING | Efek tanda tanya |
+| `confused` (alias: `berpikir`) | BRONE_FACE_THINKING | Efek tanda tanya |
 | `sedih` | BRONE_FACE_SAD | |
 | `menangis` | BRONE_FACE_CRY | Efek air mata mengalir |
 | `terkejut` | BRONE_FACE_SHOCK | Efek tanda seru |

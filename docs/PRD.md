@@ -91,7 +91,7 @@ Parameter wajah minimum:
 - Alis: TBD, belum ada di desain yang ditetapkan. Jangan diimplementasikan sebelum ada keputusan.
 - Efek: air mata, tanda seru, tanda tanya (lihat F-09).
 
-Desain acuan: gambar ekspresi dari tim desain (Base, Happy, Happier, Sad, Cry, Shock, Thinking). Nilai parameter per ekspresi diturunkan dari gambar, dan disimpan di file config, bukan di kode.
+Desain acuan: gambar ekspresi dari tim desain (Base, Happy, Happier, Sad, Cry, Shock, Confused). Nilai parameter per ekspresi diturunkan dari gambar, dan disimpan di file config, bukan di kode.
 
 Acceptance criteria:
 - AC-01.1: Canvas mengisi seluruh area jendela pada resolusi 800x480 (rasio 5:3) tanpa scrollbar.
@@ -106,7 +106,7 @@ Deskripsi: tujuh ekspresi dasar. Nama mengikuti kontrak.
 | Nama (kontrak) | Nama desain | Ringkas |
 |---|---|---|
 | `netral` | Base | Mata oval, mulut senyum terbuka |
-| `berpikir` | Thinking | Satu mata lebih kecil, mulut datar miring, tanda tanya |
+| `berpikir` | Confused | Satu mata lebih kecil, mulut datar miring, tanda tanya |
 | `sedih` | Sad | Kelopak miring, mulut melengkung ke bawah |
 | `menangis` | Cry | Air mata, mulut melengkung ke bawah |
 | `terkejut` | Shock | Dua tanda seru, mulut bulat terbuka |
