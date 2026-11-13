@@ -21,6 +21,7 @@
   - [Langkah 7 — Uji Fungsional MQTT](#langkah-7--uji-fungsional-test-mqtt)
   - [Langkah 8 — Autostart systemd](#langkah-8--autostart-opsional)
 - [🔄 Bab Update — Ganti Binary Tanpa Menumpuk File](#-bab-update--ganti-binary-tanpa-menumpuk-file) *(Update Rutin)*
+- [⏹️ Mematikan Autostart](#-mematikan-autostart) *(Default: tanpa autostart)*
 - [✅ Rekap Konfigurasi Terverifikasi (12 November 2026)](#-rekap-konfigurasi-terverifikasi-12-november-2026) *(Bukti Uji)*
 - [Kontrol Aplikasi (Shortcut & Mode Statis)](#kontrol-aplikasi)
 - [Troubleshooting & Solusi Error](#troubleshooting)
@@ -342,6 +343,8 @@ wsl mosquitto_pub -h 192.168.1.50 -t "brone/face/ekspresi" -m '{"tipe":"ekspresi
 
 ## Langkah 8 — Autostart (Opsional)
 
+> **Default: autostart mati.** Selama aplikasi belum final, jalankan manual supaya error langsung terlihat. Bab ini hanya kalau kamu memang butuh. Untuk mematikan lagi, lihat [Mematikan Autostart](#-mematikan-autostart).
+
 🤖 **ROBOT** — Agar GUI otomatis muncul saat robot dinyalakan, pakai user service. Template lengkap ada di [Bagian 7 — Autostart Jetson](#7-setup-autostart-systemd-khusus-jetson).
 
 ```bash
@@ -523,6 +526,8 @@ WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11 BRONE_MQTT_HOST=192.168.1.50 ./
 
 ### 7. Setup Autostart systemd Khusus Jetson
 
+> **Opsional. Default repo: tidak autostart.** Autostart boot bisa gagal karena service jalan sebelum sesi grafis siap (`Failed to initialize GTK`, exit `101`). Untuk mematikan, lihat [Mematikan Autostart](#-mematikan-autostart).
+
 Agar aplikasi otomatis tampil di layar robot saat Jetson dinyalakan, pakai **user service** (`systemctl --user`). User service mewarisi `DISPLAY` dan `XAUTHORITY` dari sesi, jadi nomor display tidak perlu ditulis manual.
 
 ```bash
@@ -601,6 +606,89 @@ listener 1883 0.0.0.0
 allow_anonymous true
 ```
 Lalu restart Mosquitto di NUC: `sudo systemctl restart mosquitto`.
+
+---
+
+## ⏹️ Mematikan Autostart
+
+Default yang dianjurkan selama aplikasi belum final: autostart **mati**, GUI dijalankan manual. Dengan begitu, panic atau error langsung terlihat di terminal, bukan tersembunyi di journal.
+
+### 1. Matikan user service GUI
+
+```bash
+systemctl --user disable --now brone-gui.service
+systemctl --user is-enabled brone-gui.service      # harus: disabled
+systemctl --user is-active brone-gui.service       # harus: inactive
+```
+
+`disable --now` mematikan proses sekaligus mencabut autostart. Unit tetap ada, jadi bisa dinyalakan lagi kapan saja dengan `systemctl --user start brone-gui.service`.
+
+### 2. Hapus user unit (kalau tidak dipakai lagi)
+
+```bash
+systemctl --user stop brone-gui.service
+rm -f ~/.config/systemd/user/brone-gui.service
+systemctl --user daemon-reload
+systemctl --user list-unit-files | grep -i brone   # harus kosong
+```
+
+### 3. Matikan autostart desktop (kalau pernah dibuat)
+
+```bash
+rm -f ~/.config/autostart/brone-gui.desktop
+ls -l ~/.config/autostart/ 2>/dev/null
+```
+
+### 4. Matikan system unit (kalau pernah dibuat dengan sudo)
+
+```bash
+sudo systemctl disable --now brone-gui.service
+sudo rm -f /etc/systemd/system/brone-gui.service
+sudo systemctl daemon-reload
+```
+
+### 5. Matikan linger (opsional)
+
+Linger membuat user service tetap hidup tanpa login. Kalau GUI dijalankan manual, linger tidak perlu:
+
+```bash
+sudo loginctl disable-linger brone
+loginctl show-user brone -p Linger                 # harus: Linger=no
+```
+
+### 6. Verifikasi setelah reboot
+
+```bash
+sudo reboot
+```
+
+Setelah boot:
+
+```bash
+systemctl --user is-active brone-gui.service       # harus: inactive atau failed
+systemctl --user is-enabled brone-gui.service      # harus: disabled atau kosong
+pgrep -a brone-gui                                 # harus kosong
+```
+
+### 7. Jalankan manual
+
+```bash
+~/brone/bin/brone-gui
+```
+
+Atau dari sesi `tmux` supaya tetap hidup setelah SSH putus:
+
+```bash
+tmux new -s brone
+~/brone/bin/brone-gui
+# Ctrl+B lalu D untuk detach
+```
+
+Untuk berhenti:
+
+```bash
+pkill -f '/home/brone/brone/bin/brone-gui'
+```
 
 ---
 
@@ -704,7 +792,17 @@ strip ~/brone/bin/brone-gui.new 2>/dev/null || true
 mv -f ~/brone/bin/brone-gui.new ~/brone/bin/brone-gui
 chmod +x ~/brone/bin/brone-gui
 
-# Restart dan cek
+# Hentikan instance lama
+pkill -f '/home/brone/brone/bin/brone-gui' || true
+sleep 1
+
+# Jalankan binary baru (manual, default)
+~/brone/bin/brone-gui
+```
+
+Kalau memakai autostart service, ganti dua perintah terakhir dengan:
+
+```bash
 systemctl --user restart brone-gui.service
 sleep 5
 systemctl --user is-active brone-gui.service
@@ -712,14 +810,14 @@ systemctl --user status brone-gui.service --no-pager
 journalctl --user-unit brone-gui.service -n 50 --no-pager
 ```
 
-`is-active` harus `active`, dan RAM di `status` harus puluhan sampai ratusan MB. Kalau `activating (auto-restart)` atau exit `101`, service gagal start: baca `journalctl` sebelum lanjut.
+Kalau memakai service: `is-active` harus `active`, RAM di `status` puluhan sampai ratusan MB. Kalau `activating (auto-restart)` atau exit `101`, service gagal start: baca `journalctl`. Kalau manual: jendela harus muncul dan log MQTT tercetak di terminal.
 
 ### 3. Rollback jika update bermasalah
 
 ```bash
-systemctl --user stop brone-gui.service
+pkill -f '/home/brone/brone/bin/brone-gui' || true
 cp -f ~/brone/bin/brone-gui.prev ~/brone/bin/brone-gui
-systemctl --user start brone-gui.service
+~/brone/bin/brone-gui
 ```
 
 ### 4. Bersihkan artefak build
@@ -776,9 +874,11 @@ Hapus file `.deb` versi lama secara manual. Jangan simpan semua installer di rob
 ### Aturan singkat
 
 - Semua perintah dari folder repo: `cd ~/brone_face_ascar` dulu.
-- Service GUI pakai user unit: `systemctl --user ...`, bukan `sudo systemctl ...`.
+- Default: **tanpa autostart**. Jalankan manual `~/brone/bin/brone-gui`.
+- Autostart hanya kalau perlu, dan bisa dimatikan lewat bab [Mematikan Autostart](#-mematikan-autostart).
+- Kalau pakai autostart, service GUI pakai user unit: `systemctl --user ...`, bukan `sudo systemctl ...`.
 - Sekali saja: buat unit systemd, `enable`, dan siapkan `~/brone/bin/brone-gui`.
-- Setiap update: `git pull`, build, copy binary, `restart`.
+- Setiap update: `git pull`, build, copy binary, lalu start ulang.
 - `daemon-reload` hanya setelah file unit diedit, bukan setiap update.
 - Satu build directory: `src-tauri/target`.
 - Satu binary runtime: `~/brone/bin/brone-gui`.
@@ -866,6 +966,7 @@ Alasan tidak memakai system unit: system unit harus menulis `Environment=DISPLAY
 - `systemctl status ... --no pager` salah; harus `--no-pager`.
 - `DISPLAY=:0` hardcode gagal. Pakai user unit, atau ambil `echo $DISPLAY`.
 - Error mosquitto_pub `Bad file descriptor` muncul karena alamat salah/IP berbeda, bukan karena GUI.
+- Autostart saat boot gagal: journal menunjukkan `Failed to initialize GTK` lalu `Start request repeated too quickly`. Service jalan sebelum sesi grafis siap. Jalankan manual, atau pakai bab Mematikan Autostart.
 
 ### Sisa yang belum diverifikasi
 
