@@ -137,6 +137,7 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
 
     renderer = new Renderer(svg, state, blink, mockConfig);
     renderer.applyState(true); // Mulai dari idle
+    state.setViseme('P_B_M');
 
     // Ganti ekspresi ke happy
     state.setEmotion('happy');
@@ -169,6 +170,9 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     setTimeout(() => {
       assert.equal(renderer.currentEmotion, 'happy');
       assert.equal(renderer.isTransitioning, false);
+      renderer.applyState();
+      assert.equal(renderer.currentViseme, 'P_B_M', 'Viseme aktif diterapkan lagi setelah transisi ekspresi');
+      assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/viseme/P,B,M.svg');
       done();
     }, 370);
   });

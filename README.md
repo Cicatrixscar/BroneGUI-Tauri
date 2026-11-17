@@ -226,7 +226,7 @@ Halaman utama. Mendefinisikan struktur SVG wajah dengan layer-layer:
 | `clearEmotionOverlays()` | Sembunyikan blush, air mata (pause animasi), efek simbol. Hapus transform rotasi timeout dari mata. |
 | `updateEmotionOverlays(emosi)` | Tampilkan overlay sesuai ekspresi: blush (happier), air mata + animasi aliran (cry), simbol melayang (shock/confused). |
 | `updateEmotion(emosi)` | Shortcut: `updateEyes()` + `updateEmotionOverlays()`. |
-| `updateMouth(emosi, viseme)` | Jika viseme aktif (bukan DIAM): pakai aset viseme. Jika DIAM: pakai mulut ekspresi. Animasi fade-in kecil (scale 0.94→1.0). |
+| `updateMouth(emosi, viseme)` | Jika viseme aktif (bukan DIAM): pakai aset viseme. Jika DIAM: pakai mulut ekspresi. Mode dinamis memakai morph kontur 100 ms; mode statis langsung menampilkan aset. |
 
 **Logika khusus timeout:** Mata spiral dirotasi berkelanjutan via `transform="rotate(angle cx cy)"` di loop RAF. Mata kiri berputar searah jarum jam, mata kanan berlawanan. Kedip acak dinonaktifkan selama mode timeout.
 
@@ -463,6 +463,10 @@ Dikonsumsi oleh `main.js` saat startup. Berisi:
 | `timeout` | — | TIMEOUT EYE LEFT/RIGHT.svg (berputar) | TIMEOUT MOUTH.svg | Rotasi berkelanjutan |
 
 ### Viseme Dinamis (Mulut Bicara)
+
+Pergantian mulut memakai interpolasi kontur SVG selama 100 ms melalui `src/js/mouthMorph.js`, termasuk lidah, garis bibir, `REST`, dan kembali ke `DIAM`. Jika viseme berikutnya datang sebelum transisi selesai, morph dilanjutkan dari bentuk yang sedang tampil. Aset asli ditampilkan kembali setelah transisi selesai. Mode statis tetap langsung menampilkan bentuk pilihan. Waktu `t` pada API menandai awal transisi; bentuk target tercapai 100 ms kemudian.
+
+Verifikasi: `npm test` dan, saat dev server berjalan, `node scripts/verify-viseme-morph.mjs`. Pemeriksaan browser memakai Edge headless pada Windows; executable Chromium lain bisa dipilih lewat `BRONE_BROWSER`. Hasil visual disimpan di `reports/viseme-morph/`.
 
 Bentuk gerakan mulut bicara dibentuk oleh vokal utama (`A`, `I`, `U`, `E`, `O`) dan katup bilabial (`REST`):
 
