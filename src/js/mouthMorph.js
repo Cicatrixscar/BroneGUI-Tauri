@@ -110,7 +110,7 @@ export class MouthMorph {
     this.image.style.display = '';
   }
 
-  start(asset, box, animate = true, now = performance.now()) {
+  start(asset, box, animate = true, now = performance.now(), durationMs = 100) {
     this.update(now);
     const target = this.shape(asset, box);
     if (!target || !animate) { this.cancel(); return false; }
@@ -121,7 +121,7 @@ export class MouthMorph {
     if (!previous) { this.cancel(); return false; }
     const aligned = target.map((layer, i) => ({ ...layer, points: alignContour(previous[i].points, layer.points) }));
     this.current = previous;
-    this.transition = { from: previous, to: aligned, start: now };
+    this.transition = { from: previous, to: aligned, start: now, durationMs: Math.max(1, durationMs) };
     if (!this.group) {
       this.group = document.createElementNS(NS, 'g');
       this.group.setAttribute('data-mouth-morph', '');
@@ -151,7 +151,7 @@ export class MouthMorph {
 
   update(now) {
     if (!this.transition) return;
-    const t = Math.max(0, Math.min(1, (now - this.transition.start) / 100));
+    const t = Math.max(0, Math.min(1, (now - this.transition.start) / this.transition.durationMs));
     this.current = interpolateMouth(this.transition.from, this.transition.to, t * t * (3 - 2 * t));
     this.draw();
     if (t === 1) {

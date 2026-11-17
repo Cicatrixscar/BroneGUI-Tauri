@@ -144,13 +144,11 @@ Untuk kata reguler, suku kata dihitung berdasarkan huruf vokal (`a, i, u, e, o`)
 
 ---
 
-### Tahap 4: Penanganan Kasus Suku Kata Khusus
-1. **Vokal Panjang di Akhir Kata (*"Haloo"*, *"Iyaaa"*):**
-   * Pertahankan bentuk vokal tersebut lebih lama: $+100\text{ ms}$ per vokal ekstra (misal *"Haloo"* = `A` 150ms + `O` 250ms = 400ms).
-   * Bentuk mulut tetap stabil di `O` tanpa menimbulkan *glitch* buka-tutup.
-2. **Vokal Kembar Berurutan (*"Sa-at"*, *"Ma-af"*):**
-   * **Tidak menggunakan jeda glottal / micro-REST palsu** agar visual tidak kejang/kedut (*anti-twitching*).
-   * Mulut tetap tenang di posisi `A` selama total durasi 2 suku kata ($2 \times 150\text{ ms} = \mathbf{300\text{ ms}}$).
+### Tahap 4: Vokal Identik Berurutan
+
+Vokal identik berurutan selalu memakai perpanjangan +100 ms per vokal ekstra, termasuk pada kata biasa. Contoh: `haloo` = A 150 ms + O 250 ms; `saat` = A 250 ms; `maaf` = REST 45 ms + A 205 ms.
+
+Tidak ada micro-REST di antara vokal identik. Viseme identik yang bersebelahan digabung agar bentuk mulut stabil. Aturan ini adalah pendekatan visual sederhana, bukan pembedaan fonetik vokal panjang dan dua suku kata. Tanda hubung eksplisit tetap menjadi batas suku kata.
 
 ---
 
@@ -170,111 +168,32 @@ Untuk kata reguler, suku kata dihitung berdasarkan huruf vokal (`a, i, u, e, o`)
 
 ---
 
-## 5. Referensi Implementasi JavaScript (Siap Pakai)
+## 5. Keputusan Implementasi Modular
 
-Developer dapat menyematkan fungsi pemecah kata berikut ke dalam `src/js/`:
+Keputusan berikut menggantikan aturan yang bertentangan pada contoh rancangan di atas.
 
-```javascript
-const VOWELS = new Set(['a', 'i', 'u', 'e', 'o']);
-const BILABIALS = new Set(['p', 'b', 'm']);
+- Pilihan `bicara.visemeMode`: `bawaan`, `streaming`, atau `fallback`. Default `bawaan`; streaming nonaktif sampai dipilih. Hanya sumber terpilih yang mengendalikan mulut.
+- Tekan **F4 di mode dinamis** untuk berputar Bawaan -> Streaming kata -> Fallback mulut. Indikator pilihan tampil 2 detik. F4 tidak mengganti dinamis/statis dan mengabaikan key repeat serta modifier. Dropdown pada panel F2 tetap tersedia sebagai pengaturan tambahan. Pilihan panel berlaku selama aplikasi berjalan; ubah konfigurasi untuk default saat startup.
+- PBM mengambil budget suku kata: `belum` = REST 45 -> E 105 -> U 105 -> REST 45 = 300 ms. `bom` = REST 45 -> O 60 -> REST 45 = 150 ms.
+- Vokal identik berurutan selalu diperpanjang +100 ms per karakter ekstra: `saat` = A 250 ms; `maaf` = REST 45 -> A 205 ms. Tidak ada micro-REST tambahan. Viseme identik bersebelahan digabung.
+- Ejaan per huruf hanya untuk 2-5 huruf kapital penuh. `BCA` = REST 45 -> E 255 -> A 150 = 450 ms. Kata biasa yang dikirim kapital penuh juga akan dieja; pengirim harus mempertahankan kapitalisasi yang dimaksud.
+- Parser memakai heuristik vokal tertulis dan pembagian konsonan antarvokal; tanda hubung dapat memberi batas suku kata eksplisit. Ini bukan transkripsi fonetik lengkap. Angka dan token tanpa vokal tidak menghasilkan animasi.
+- Morph streaming menyesuaikan segmen: maksimal 60 ms untuk vokal, 25 ms untuk REST, dan maksimal 60% durasi segmen. Morph bawaan tetap 100 ms. Animasi mata saat pergantian ekspresi tidak boleh menimpa mulut streaming.
+- `duration` dari ekspresi menjadi master deadline streaming. Kata berikutnya dan duplikasi `tts:start` tidak memperpanjang deadline tersebut. Adapter Rust tetap mempertahankan `durasi_ms` untuk kompatibilitas mode bawaan; mode streaming menafsirkannya sebagai batas sesi audio dan melewati reset ekspresi lama.
+- `tts:end` dapat menyelesaikan sesi lebih awal. Selesai bersifat idempoten: timer kata dibatalkan, DIAM, hold 5000 ms, lalu idle. Kata terlambat setelah penutupan eksplisit/master deadline diabaikan sampai awal sesi baru.
+- Tanpa durasi, setelah kata selesai masuk REST; keheningan pesan kata 1200 ms mengakhiri sesi sementara. Kata baru selama hold dapat melanjutkan sesi. Setelah hold habis, sesi ditutup. Watchdog 10000 ms menjadi batas keras sesi tanpa durasi.
+- Berganti sumber atau mode statis/dinamis membatalkan timer sebelumnya. Modul bawaan, fallback, dan aset viseme lama tetap tersedia. Tidak ada perpindahan otomatis ke sumber lain.
+- Kompatibilitas konfigurasi lama: `fallbackMulutAktif: true` tetap mengaktifkan fallback jika streaming/fallback belum dipilih eksplisit; jadwal asli masih dapat mengambil alih pada konfigurasi lama itu. Pemilihan melalui panel memakai isolasi mode baru.
 
-const ACRONYM_MAP = {
-  A: [{ v: 'A', durasi: 150 }],
-  B: [{ v: 'REST', durasi: 45 }, { v: 'E', durasi: 105 }],
-  C: [{ v: 'E', durasi: 150 }],
-  D: [{ v: 'E', durasi: 150 }],
-  E: [{ v: 'E', durasi: 150 }],
-  F: [{ v: 'E', durasi: 150 }],
-  G: [{ v: 'E', durasi: 150 }],
-  H: [{ v: 'A', durasi: 150 }],
-  I: [{ v: 'I', durasi: 150 }],
-  J: [{ v: 'E', durasi: 150 }],
-  K: [{ v: 'A', durasi: 150 }],
-  L: [{ v: 'E', durasi: 150 }],
-  M: [{ v: 'E', durasi: 105 }, { v: 'REST', durasi: 45 }],
-  N: [{ v: 'E', durasi: 150 }],
-  O: [{ v: 'O', durasi: 150 }],
-  P: [{ v: 'REST', durasi: 45 }, { v: 'E', durasi: 105 }],
-  Q: [{ v: 'I', durasi: 150 }],
-  R: [{ v: 'E', durasi: 150 }],
-  S: [{ v: 'E', durasi: 150 }],
-  T: [{ v: 'E', durasi: 150 }],
-  U: [{ v: 'U', durasi: 150 }],
-  V: [{ v: 'E', durasi: 150 }],
-  W: [{ v: 'E', durasi: 150 }],
-  X: [{ v: 'E', durasi: 150 }],
-  Y: [{ v: 'E', durasi: 150 }],
-  Z: [{ v: 'E', durasi: 150 }],
-};
+### Parameter Kalibrasi
 
-export function parseWordToVisemes(rawWord) {
-  if (!rawWord || typeof rawWord !== 'string') return [];
+Parameter ada di `src/config/config.json` -> `bicara.streaming`: `syllableMs`, `bilabialMs`, `extraVowelMs`, `punctuationMs`, `silenceTimeoutMs`, `watchdogMs`, `morphMs`, `closureMorphMs`. Hold berada di `bicara.holdAfterSpeechMs`.
 
-  // 1. Cek tanda baca di akhir kata
-  const cleanWord = rawWord.replace(/[,.!?;:]/g, '').trim();
-  const hasPause = /[,.!?;:]$/.test(rawWord.trim());
+Rata-rata empiris 157,5 ms/suku kata menjadi dasar pemilihan budget 150 ms. Pembagian PBM, pemanjangan vokal, dan durasi morph merupakan setelan awal animasi, bukan pengukuran tambahan dari data audio tersebut. Timeout keheningan adalah pengaman lokal, bukan bukti audio telah selesai.
 
-  // 2. Deteksi akronim (2-5 huruf kapital penuh, misal: "BCA", "UB")
-  if (/^[A-Z]{2,5}$/.test(cleanWord)) {
-    const list = [];
-    for (const char of cleanWord) {
-      if (ACRONYM_MAP[char]) {
-        list.push(...ACRONYM_MAP[char]);
-      }
-    }
-    if (hasPause) list.push({ v: 'REST', durasi: 180 });
-    return list;
-  }
+### Sumber Implementasi
 
-  // 3. Kata reguler (huruf kecil)
-  const lower = cleanWord.toLowerCase();
-  const visemes = [];
-  let i = 0;
-
-  while (i < lower.length) {
-    const char = lower[i];
-
-    // Cek konsonan bilabial awal suku kata (P, B, M)
-    if (BILABIALS.has(char)) {
-      visemes.push({ v: 'REST', durasi: 45 });
-      i++;
-      continue;
-    }
-
-    // Cek huruf vokal
-    if (VOWELS.has(char)) {
-      const vokalKey = char.toUpperCase();
-
-      // Cek vokal panjang berulang (misal "oo" di "haloo")
-      let extra = 0;
-      while (i + 1 < lower.length && lower[i + 1] === char) {
-        extra += 100;
-        i++;
-      }
-
-      // Jika sebelumnya ada konsonan bilabial, porsi vokal adalah 105ms
-      const durasiVokal = (visemes.length > 0 && visemes[visemes.length - 1].v === 'REST')
-        ? 105 + extra
-        : 150 + extra;
-
-      visemes.push({ v: vokalKey, durasi: durasiVokal });
-      i++;
-      continue;
-    }
-
-    // Cek konsonan bilabial penutup koda di ujung kata (misal "m" di "belum")
-    if ((i === lower.length - 1 || !VOWELS.has(lower[i + 1])) && BILABIALS.has(char)) {
-      visemes.push({ v: 'REST', durasi: 45 });
-    }
-
-    i++;
-  }
-
-  // Tambahkan jeda nafas jika ada koma/titik
-  if (hasPause) {
-    visemes.push({ v: 'REST', durasi: 180 });
-  }
-
-  return visemes;
-}
-```
+- `src/js/wordViseme.js`: pemecah kata dan ejaan, tanpa timer.
+- `src/js/visemeController.js`: preemption, deadline, keheningan, hold, dan watchdog streaming.
+- `src/js/connector.js`: pemilihan sumber serta jalur bawaan/fallback yang tetap kompatibel.
+- `tests/fe/wordViseme.test.js` dan `tests/fe/visemeController.test.js`: bukti parser dan lifecycle.

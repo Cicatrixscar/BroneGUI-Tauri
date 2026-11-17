@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Topik yang benar-benar dipakai `brone-talk` (lihat laporan audit 11 Nov 2026).
 pub const TOPIC_LLM_EKSPRESI: &str = "robot/expression";
+pub const TOPIC_LLM_WORD: &str = "robot/word";
 pub const TOPIC_LLM_VOICE_STAGE: &str = "robot/voice_stage";
 
 pub const VALID_EMOSI: &[&str] = &[
@@ -61,6 +62,8 @@ pub enum Pesan {
         id: String,
         jadwal: Vec<VisemeItem>,
     },
+    #[serde(rename = "word")]
+    Word { word: String },
     #[serde(rename = "bicara")]
     Bicara {
         status: String,
@@ -128,12 +131,24 @@ fn ekspresi(emosi: &str) -> Pesan {
 /// Menerjemahkan payload mentah `robot/#` dari LLM ke kontrak internal GUI.
 /// Mendukung payload tunggal maupun gabungan (ekspresi + durasi + viseme jadwal).
 pub fn pesan_dari_llm(topic: &str, payload: &str) -> Result<Vec<Pesan>, String> {
+    if topic == TOPIC_LLM_WORD {
+        #[derive(Deserialize)]
+        struct WordPayload { word: String }
+        let raw: WordPayload = serde_json::from_str(payload)
+            .map_err(|e| format!("JSON word tidak valid: {e}"))?;
+        let message = Pesan::Word { word: raw.word };
+        validasi_pesan(&message).map_err(str::to_string)?;
+        return Ok(vec![message]);
+    }
     if topic == TOPIC_LLM_EKSPRESI {
         let raw: LlmExpression = serde_json::from_str(payload)
             .map_err(|e| format!("JSON ekspresi LLM tidak valid: {e}"))?;
 
         let raw_expr = raw.expression.or(raw.emosi).or(raw.ekspresi);
         let duration = raw.duration.or(raw.durasi_s);
+        if duration.is_some_and(|d| !d.is_finite() || d <= 0.0 || d > 3600.0) {
+            return Err("Durasi harus positif dan paling lama 3600 detik".into());
+        }
         let visemes = raw.viseme.or(raw.jadwal);
 
         let mut pesan_list = Vec::new();
@@ -196,7 +211,7 @@ pub fn pesan_dari_llm(topic: &str, payload: &str) -> Result<Vec<Pesan>, String> 
                 status: "mulai".into(),
                 durasi_s: None,
             }]),
-            ("tts", _) => Ok(vec![Pesan::Bicara {
+            ("tts", "end" | "done" | "finish" | "finished" | "stop" | "selesai") => Ok(vec![Pesan::Bicara {
                 status: "selesai".into(),
                 durasi_s: None,
             }]),
@@ -220,12 +235,18 @@ pub fn validasi_pesan(p: &Pesan) -> Result<(), &'static str> {
             }
             Ok(())
         }
+        Pesan::Word { word } => {
+            if word.trim().is_empty() || word.chars().count() > 256 || word.chars().any(char::is_control) {
+                return Err("Word harus berisi 1-256 karakter tanpa karakter kontrol");
+            }
+            Ok(())
+        }
         Pesan::Viseme { jadwal, .. } => {
             if jadwal.is_empty() {
                 return Err("Jadwal viseme tidak boleh kosong");
             }
             for item in jadwal {
-                if item.t < 0.0 {
+                if !item.t.is_finite() || item.t < 0.0 {
                     return Err("Waktu timestamp t tidak boleh negatif");
                 }
                 if !VALID_VISEME.contains(&item.v.as_str()) {
@@ -239,8 +260,8 @@ pub fn validasi_pesan(p: &Pesan) -> Result<(), &'static str> {
                 return Err("Status bicara harus 'mulai' atau 'selesai'");
             }
             if let Some(d) = durasi_s {
-                if *d < 0.0 {
-                    return Err("Durasi bicara tidak boleh negatif");
+                if !d.is_finite() || *d <= 0.0 || *d > 3600.0 {
+                    return Err("Durasi bicara harus positif dan paling lama 3600 detik");
                 }
             }
             Ok(())
@@ -417,8 +438,15 @@ mod tests {
             .is_empty());
     }
 
-        assert!(pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"vad","state":"start"}"#)
-            .unwrap()
-            .is_none());
+    #[test]
+    fn test_word_stream_contract() {
+        assert_eq!(pesan_dari_llm(TOPIC_LLM_WORD, r#"{"word":"belum"}"#).unwrap(),
+            vec![Pesan::Word { word: "belum".into() }]);
+        for payload in [r#"{"word":""}"#, r#"{"word":42}"#, r#"{}"#] {
+            assert!(pesan_dari_llm(TOPIC_LLM_WORD, payload).is_err());
+        }
+        assert!(validasi_pesan(&Pesan::Word { word: "x".repeat(257) }).is_err());
+        assert!(pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"tts","state":"progress"}"#).unwrap().is_empty());
+        assert!(pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"happy","duration":-1}"#).is_err());
     }
 }

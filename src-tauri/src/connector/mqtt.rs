@@ -25,6 +25,7 @@ impl Default for MqttConfig {
                 // Kontrak asli `brone-talk`, diterjemahkan oleh adapter protocol.rs.
                 "robot/expression".into(),
                 "robot/voice_stage".into(),
+                "robot/word".into(),
                 // Kontrak GUI lama, tetap didukung untuk uji manual.
                 "brone/face/ekspresi".into(),
                 "brone/face/viseme".into(),
@@ -111,6 +112,7 @@ pub async fn start_mqtt_client(app_handle: AppHandle, config: MqttConfig) {
                                 Pesan::Ekspresi { .. } => "brone://ekspresi",
                                 Pesan::Viseme { .. } => "brone://viseme",
                                 Pesan::Bicara { .. } => "brone://bicara",
+                                Pesan::Word { .. } => "brone://word",
                             };
 
                             let val = serde_json::to_value(&pesan).unwrap_or_default();

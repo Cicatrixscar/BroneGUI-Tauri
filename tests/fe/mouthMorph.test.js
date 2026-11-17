@@ -38,7 +38,11 @@ test('mouth morph keeps intermediate geometry when interrupted and restores imag
     assert.deepEqual(morph.current, shapes.U);
     assert.equal(morph.transition, null);
     assert.equal(image.style.display, '');
-    assert.equal(morph.start('O', {}, false, 160), false);
+    morph.start('O', {}, true, 160, 25);
+    morph.update(185);
+    assert.equal(morph.transition, null, '25ms closure must finish before a 45ms segment ends');
+    assert.deepEqual(morph.current, shapes.O);
+    assert.equal(morph.start('O', {}, false, 190), false);
     assert.equal(morph.current, null);
     assert.equal(morph.group, null);
   } finally {

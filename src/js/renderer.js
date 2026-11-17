@@ -225,6 +225,10 @@ export class Renderer {
       this.updateMouth(emosi, viseme);
       this.currentViseme = viseme;
     }
+    if (this.state?.visemeMode === 'streaming' && this.isTransitioning && visemeChanged) {
+      this.updateMouth(emosi, viseme);
+      this.currentViseme = viseme;
+    }
   }
 
   setMouthToFlat() {
@@ -248,7 +252,8 @@ export class Renderer {
    * 3. Ketika mata terbuka kembali, ekspresi baru sudah aktif sepenuhnya.
    */
   transitionToEmotion(targetEmotion) {
-    this.mouthMorph.cancel();
+    const streamMouth = this.state?.visemeMode === 'streaming';
+    if (!streamMouth) this.mouthMorph.cancel();
     if (!window.anime) {
       this.updateEmotion(targetEmotion);
       this.updateMouth(targetEmotion, this.state?.viseme || 'DIAM');
@@ -286,7 +291,7 @@ export class Renderer {
 
     // 2. Mulut merapat ke garis datar saat mata menutup
     const tFlatten = Math.round(half * 0.6); // ~105ms
-    window.anime({
+    if (!streamMouth) window.anime({
       targets: '#layer-mouth',
       scaleY: [
         { value: 0.08, duration: tFlatten, easing: 'easeInQuad' },
@@ -300,7 +305,7 @@ export class Renderer {
 
     // Pada t = tFlatten: Pasang asset mulut paling datar (P,B,M.svg)
     const timer1 = setTimeout(() => {
-      this.setMouthToFlat();
+      if (!streamMouth) this.setMouthToFlat();
     }, tFlatten);
     this.transitionTimers.push(timer1);
 
@@ -315,13 +320,13 @@ export class Renderer {
       this.updateEyes(targetEmotion);
 
       // Ganti mulut ke ekspresi target
-      this.updateMouth(targetEmotion, 'DIAM');
+      if (!streamMouth) this.updateMouth(targetEmotion, 'DIAM');
 
       // Aktifkan overlay emosi baru (air mata, blush, simbol)
       this.updateEmotionOverlays(targetEmotion);
 
       // Mulut membuka bersamaan dengan mata membuka kembali (half -> duration)
-      window.anime({
+      if (!streamMouth) window.anime({
         targets: '#layer-mouth',
         scaleY: [0.15, 1.0],
         opacity: [0.85, 1.0],
@@ -546,7 +551,7 @@ export class Renderer {
 
     if (asset) {
       const morphing = this.mouthMorph.start(asset, { x, y, w, h },
-        !this.isTransitioning && this.shouldMorphMouth());
+        (!this.isTransitioning || this.state?.visemeMode === 'streaming') && this.shouldMorphMouth(), performance.now(), this.state.visemeMorphMs ?? 100);
       this.mouthEl.setAttribute('href', asset);
       this.mouthEl.setAttribute('x', x);
       this.mouthEl.setAttribute('y', y);

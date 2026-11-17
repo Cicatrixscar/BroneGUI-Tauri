@@ -92,7 +92,7 @@ const server = http.createServer((req, res) => {
   }
 
   // 2. Endpoint API Penerima Pesan Terminal: POST /api/message atau POST /api/ekspresi
-  if (req.method === 'POST' && (pathname === '/api/message' || pathname === '/api/ekspresi' || pathname === '/api/viseme' || pathname === '/api/bicara')) {
+  if (req.method === 'POST' && (pathname === '/api/message' || pathname === '/api/ekspresi' || pathname === '/api/viseme' || pathname === '/api/bicara' || pathname === '/api/word')) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
@@ -108,6 +108,7 @@ const server = http.createServer((req, res) => {
           payload.tipe = 'bicara';
         }
 
+        if (pathname === '/api/word' && !payload.tipe) payload.tipe = 'word';
         const deliveredCount = broadcastToClients(payload);
         console.log(`[Bridge] Pesan diterima dari terminal:`, payload, `(terkirim ke ${deliveredCount} browser)`);
 
@@ -156,12 +157,15 @@ const server = http.createServer((req, res) => {
 // 4. Jembatan otomatis Mosquitto MQTT -> Browser SSE
 function startMosquittoSubBridge() {
   try {
-    const sub = spawn('mosquitto_sub', ['-h', MQTT_HOST, '-p', MQTT_PORT, '-t', 'brone/face/#', '-F', '%t\t%p'], {
+    const sub = spawn('mosquitto_sub', ['-h', MQTT_HOST, '-p', MQTT_PORT, '-t', 'brone/face/#', '-t', 'robot/word', '-t', 'robot/expression', '-t', 'robot/voice_stage', '-F', '%t\t%p'], {
       stdio: ['ignore', 'pipe', 'ignore']
     });
 
+    let mqttBuffer = '';
     sub.stdout.on('data', (data) => {
-      const lines = data.toString().split('\n');
+      mqttBuffer += data.toString();
+      const lines = mqttBuffer.split('\n');
+      mqttBuffer = lines.pop();
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
@@ -172,7 +176,33 @@ function startMosquittoSubBridge() {
           try {
             const payload = JSON.parse(payloadStr);
             console.log(`[MQTT Bridge] Menerima pesan MQTT dari '${topic}':`, payload);
-            broadcastToClients(payload);
+            if (topic === 'robot/word') {
+              broadcastToClients({ tipe: 'word', word: payload.word });
+            } else if (topic === 'robot/expression') {
+              const aliases = { neutral: 'idle', excited: 'happier', thinking: 'confused' };
+              const emotion = payload.expression ?? payload.emosi ?? payload.ekspresi;
+              const duration = payload.duration ?? payload.durasi_s;
+              if (emotion && emotion !== 'speaking') {
+                broadcastToClients({ tipe: 'ekspresi', emosi: aliases[emotion] ?? emotion,
+                  durasi_ms: duration > 0 ? duration * 1000 : undefined });
+              }
+              if (emotion === 'speaking' || duration > 0) {
+                broadcastToClients({ tipe: 'bicara', status: 'mulai', durasi_s: duration });
+              }
+              if (payload.viseme ?? payload.jadwal) {
+                broadcastToClients({ tipe: 'viseme', jadwal: payload.viseme ?? payload.jadwal });
+              }
+            } else if (topic === 'robot/voice_stage') {
+              if (payload.stage === 'tts' && payload.state === 'start') {
+                broadcastToClients({ tipe: 'bicara', status: 'mulai' });
+              } else if (payload.stage === 'tts' && ['end', 'done', 'finish', 'finished', 'stop', 'selesai'].includes(payload.state)) {
+                broadcastToClients({ tipe: 'bicara', status: 'selesai' });
+              } else if (payload.stage === 'error' || payload.state === 'error') {
+                broadcastToClients({ tipe: 'ekspresi', emosi: 'timeout' });
+              } else if (payload.stage === 'llm' && payload.state === 'start') {
+                broadcastToClients({ tipe: 'ekspresi', emosi: 'confused' });
+              }
+            } else broadcastToClients(payload);
           } catch {
             // Abaikan jika bukan JSON
           }

@@ -17,7 +17,7 @@ Broker Mosquitto berjalan di Jetson (`0.0.0.0:1883`). LLM di NUC mengirim format
 | `robot/voice_stage` | `{"stage":"llm","state":"start"}` | `emosi=confused` |
 | `robot/voice_stage` | `{"stage":"error","state":"llm"}` | `emosi=timeout` |
 | `robot/voice_stage` | `{"stage":"tts","state":"start"}` | `bicara=mulai` |
-| `robot/voice_stage` | `{"stage":"tts","state":"<selain start>"}` | `bicara=selesai` |
+| `robot/voice_stage` | `{"stage":"tts","state":"end"}` | `bicara=selesai` |
 
 Ekspresi LLM di luar tabel di atas ditolak dan dicatat di log. Nama `speaking` bukan emosi; GUI tidak mengganti ekspresi saat menerimanya.
 
@@ -25,7 +25,7 @@ Catatan: `brone-talk` belum mengirim jadwal viseme. Default: `bicara=mulai` tida
 
 Topik lama `brone/face/ekspresi`, `brone/face/viseme`, dan `brone/face/bicara` tetap diterima untuk uji manual dengan kontrak internal di bawah.
 
-Sumber semua pesan adalah tim LLM. Tim LLM mengirim JSON yang sudah berisi timestamp dan viseme. GUI tidak mengubah fonem menjadi viseme.
+Sumber pesan adalah tim LLM. Mode bawaan menerima jadwal timestamp viseme. Mode streaming opsional menerima kata dan menghasilkan viseme lokal; lihat aturan di bawah.
 
 ## Pesan ekspresi
 
@@ -101,3 +101,21 @@ Efek (air mata, tanda seru, tanda tanya) mengikuti ekspresi. Tidak ada field efe
 - Pesan yang datang saat mode statis dibuang, tidak diantre (PRD Q14).
 - Viseme yang `t`-nya sudah lewat saat diterima dilewati, tidak dimainkan mundur.
 - Jadwal kosong atau habis: mulut kembali ke `DIAM`.
+
+## Streaming kata opsional
+
+Aktifkan `bicara.visemeMode: "streaming"` pada `src/config/config.json`, atau tekan **F4 saat mode dinamis** untuk berputar Bawaan -> Streaming kata -> Fallback mulut. F2 tetap mengganti dinamis/statis; F3 tetap mengatur panel statis. Pilihan lain: `bawaan` (default, streaming mati) dan `fallback` (vokal sintetis). Pilihan panel berlaku sampai aplikasi ditutup. Pergantian pilihan membatalkan seluruh timer mulut dan hold sebelumnya.
+
+| Topik MQTT | Payload | Event internal |
+|---|---|---|
+| `robot/expression` | `{"expression":"happy","duration":6.0}` | Ekspresi + mulai bicara; durasi menjadi batas master streaming |
+| `robot/word` | `{"word":"belum"}` | `brone://word` dengan `{"tipe":"word","word":"belum"}` |
+| `robot/voice_stage` | `{"stage":"tts","state":"end"}` | Selesai bicara |
+
+`word` wajib string tidak kosong, maksimal 256 karakter, tanpa karakter kontrol. Token tidak didukung (misalnya angka) diabaikan parser. Ejaan per huruf hanya untuk 2-5 huruf kapital penuh. Tidak perlu mengirim batas suku kata; tanda hubung eksplisit tetap diterima.
+
+Kata baru langsung memotong kata lama. Setelah kata selesai, mulut REST sambil menunggu. Batas durasi atau pesan akhir mengembalikan DIAM, menahan ekspresi 5000 ms, lalu idle. Tanpa keduanya, GUI memakai timeout keheningan dan watchdog lokal. Pesan akhir berulang tidak memulai ulang hold. Kata terlambat setelah penutupan keras diabaikan sampai sesi baru dimulai.
+
+Untuk kompatibilitas, adapter tetap mengirim `durasi_ms` ekspresi dan `durasi_s` mulai bicara. Streaming memakai durasi itu sebagai batas audio, bukan timer reset ekspresi. Sumber yang tidak dipilih tidak memengaruhi mulut/hold streaming. Detail parameter dan kompromi heuristik ada di `docs/rekap-ide-baru-viseme-streaming.md` bagian 5.
+
+Uji browser: POST `/api/word` dengan `{"word":"belum"}`, atau POST `/api/message` memakai kontrak internal. Bridge MQTT development juga menerima tiga topik `robot/` di atas.

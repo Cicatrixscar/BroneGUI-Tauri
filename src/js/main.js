@@ -178,6 +178,8 @@ const DEFAULT_CONFIG = {
   },
   bicara: {
     fallbackMulutAktif: false,
+    visemeMode: 'bawaan',
+    streaming: { syllableMs: 150, bilabialMs: 45, extraVowelMs: 100, punctuationMs: 180, silenceTimeoutMs: 1200, watchdogMs: 10000, morphMs: 60, closureMorphMs: 25 },
     fallbackIntervalMs: 140,
     fallbackWatchdogMs: 10000,
     holdAfterSpeechMs: 5000
@@ -191,6 +193,7 @@ const DEFAULT_CONFIG = {
 const DEFAULT_KEYMAP = {
   toggleMode: 'F2',
   togglePanel: 'F3',
+  toggleVisemeMode: 'F4',
   expressions: {
     '1': 'idle',
     '2': 'confused',
@@ -249,6 +252,11 @@ async function initApp() {
     ? {
         ...baseConfig,
         ...localConfig,
+        bicara: {
+          ...baseConfig.bicara,
+          ...localConfig.bicara,
+          streaming: { ...baseConfig.bicara?.streaming, ...localConfig.bicara?.streaming }
+        },
         mode: {
           ...baseConfig.mode,
           ...localConfig.mode
@@ -269,12 +277,17 @@ async function initApp() {
 
   const modeManager = new ModeManager(config, keymap, state);
   renderer.shouldMorphMouth = () => modeManager.isDynamic();
-  const panel = new ControlPanel(state, modeManager, keymap);
+  const visemeController = initConnector(state, modeManager);
+  const panel = new ControlPanel(state, modeManager, keymap, visemeController);
+  modeManager.visemeController = visemeController;
+  modeManager.onVisemeModeChange = mode => panel.showVisemeMode(mode);
   modeManager.panel = panel;
-  modeManager.onModeChange = (mode) => panel.setMode(mode);
+  modeManager.onModeChange = (mode) => {
+    visemeController.stop();
+    panel.setMode(mode);
+  };
 
   await renderer.mouthMorph.load(config);
-  initConnector(state, modeManager);
   renderer.start();
 
   // Pasang event listener kontrol jendela (tombol fullscreen & tutup pojok kanan atas)
