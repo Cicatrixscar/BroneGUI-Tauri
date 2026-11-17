@@ -74,9 +74,13 @@ export function initConnector(state, modeManager) {
     state.setViseme('DIAM');
 
     const vokal = ['A', 'I', 'U', 'E', 'O'];
-    let index = 0;
+    let index = -1;
     _fallbackTimer = setInterval(() => {
-      index = (index + 1) % vokal.length;
+      let nextIndex;
+      do {
+        nextIndex = Math.floor(Math.random() * vokal.length);
+      } while (nextIndex === index);
+      index = nextIndex;
       state.setViseme(vokal[index]);
     }, fallbackIntervalMs);
 
