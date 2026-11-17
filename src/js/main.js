@@ -177,7 +177,7 @@ const DEFAULT_CONFIG = {
     durationMs: 350
   },
   bicara: {
-    fallbackMulutAktif: true,
+    fallbackMulutAktif: false,
     fallbackIntervalMs: 140,
     fallbackWatchdogMs: 10000,
     holdAfterSpeechMs: 4000
