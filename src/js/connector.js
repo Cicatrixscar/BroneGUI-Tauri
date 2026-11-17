@@ -1,3 +1,5 @@
+import { WordVisemeController } from './visemeController.js';
+
 // Mendengarkan event dari BE (Tauri) dan memperbarui state (F-05, F-07).
 // Nama event dan bentuk payload mengikuti docs/CONTRACT.md.
 
@@ -27,7 +29,14 @@ export function initConnector(state, modeManager) {
   let _fallbackTimer = null;
   let _fallbackWatchdog = null;
   const fallbackConfig = state?.config?.bicara ?? {};
-  const fallbackAktif = fallbackConfig.fallbackMulutAktif === true;
+  const streaming = new WordVisemeController(state);
+  const validModes = ['bawaan', 'streaming', 'fallback'];
+  // Legacy boolean still enables fallback when no explicit mode is configured.
+  let legacyFallback = fallbackConfig.fallbackMulutAktif === true &&
+    !['streaming', 'fallback'].includes(fallbackConfig.visemeMode);
+  let visemeMode = legacyFallback ? 'fallback' : validModes.includes(fallbackConfig.visemeMode)
+    ? fallbackConfig.visemeMode : 'bawaan';
+  state.visemeMode = visemeMode;
   const fallbackIntervalMs = fallbackConfig.fallbackIntervalMs ?? 140;
   const fallbackWatchdogMs = fallbackConfig.fallbackWatchdogMs ?? 10000;
 
@@ -67,7 +76,7 @@ export function initConnector(state, modeManager) {
   }
 
   function mulaiFallbackMulut(durasiS) {
-    if (!fallbackAktif) return;
+    if (visemeMode !== 'fallback') return;
     hentikanFallbackMulut(false);
 
     // Mulai dari bentuk mulut ekspresi aktif, bukan langsung lompat ke vokal.
@@ -148,13 +157,10 @@ export function initConnector(state, modeManager) {
     }
     if (!payload || typeof payload !== 'object') return;
 
-    // Batalkan hold timer sebelumnya bila ada aktivitas baru yang masuk (interupsi cepat)
-    batalkanHoldTimer();
-
     // Deduplikasi jika pesan identik tiba ganda dalam kurun < 30ms (mencegah trigger ganda)
     const payloadStr = JSON.stringify(payload);
     const now = performance.now();
-    if (payloadStr === _lastMsgStr && (now - _lastMsgTime) < 30) {
+    if (payload.tipe !== 'word' && payloadStr === _lastMsgStr && (now - _lastMsgTime) < 30) {
       return;
     }
     _lastMsgStr = payloadStr;
@@ -166,6 +172,29 @@ export function initConnector(state, modeManager) {
     }
 
     const { tipe } = payload;
+    if (tipe === 'word') {
+      if (visemeMode === 'streaming') streaming.word(payload.word);
+      return;
+    }
+    if (visemeMode === 'streaming') {
+      if (tipe === 'ekspresi') {
+        const emotion = EMOTION_ALIASES[payload.emosi] || payload.emosi;
+        if (typeof emotion !== 'string' || !emotion) return;
+        stop(false);
+        streaming.closed = false;
+        state.setEmotion(emotion, payload.intensitas ?? 1.0);
+        const seconds = payload.durasi_s ?? payload.duration ?? payload.durasi_ms / 1000;
+        if (Number.isFinite(seconds) && seconds > 0) streaming.start(seconds, true);
+      } else if (tipe === 'bicara') {
+        if (payload.status === 'mulai') streaming.start(payload.durasi_s ?? payload.duration);
+        else if (payload.status === 'selesai') streaming.finish();
+      }
+      return;
+    }
+    if (tipe === 'viseme' && visemeMode === 'fallback' && !legacyFallback) return;
+    if (tipe === 'ekspresi' || tipe === 'viseme' || (tipe === 'bicara' && payload.status === 'mulai')) {
+      batalkanHoldTimer();
+    }
 
     if (tipe === 'ekspresi') {
       const { emosi: rawEmosi, intensitas = 1.0, durasi_ms, jadwal, viseme: visemeJadwal, durasi_s, duration } = payload;
@@ -181,7 +210,7 @@ export function initConnector(state, modeManager) {
 
       // Jika payload membawa jadwal viseme (paket gabungan)
       const listJadwal = jadwal || visemeJadwal;
-      if (Array.isArray(listJadwal) && listJadwal.length > 0) {
+      if ((visemeMode === 'bawaan' || legacyFallback) && Array.isArray(listJadwal) && listJadwal.length > 0) {
         hentikanFallbackMulut(false);
         jalankanJadwalViseme(listJadwal);
       } else if (durasi_s || duration) {
@@ -216,6 +245,29 @@ export function initConnector(state, modeManager) {
     }
   };
 
+  function stop(resetDedupe = true) {
+    if (_ekspresiTimer !== null) clearTimeout(_ekspresiTimer);
+    _ekspresiTimer = null;
+    batalkanHoldTimer();
+    batalkanVisemeTimers();
+    hentikanFallbackMulut(false);
+    streaming.cancel();
+    if (resetDedupe) _lastMsgStr = '';
+  }
+
+  const controller = {
+    get mode() { return visemeMode; },
+    setMode(mode) {
+      if (!validModes.includes(mode) || mode === visemeMode) return;
+      stop();
+      legacyFallback = false;
+      visemeMode = mode;
+      state.visemeMode = mode;
+      state.notifyChange?.();
+    },
+    stop,
+  };
+
   // 1. Integrasi Tauri Event API jika berjalan di desktop Tauri
   const tauriListen = window.__TAURI__?.event?.listen || window.__TAURI_INTERNALS__?.listen;
   if (typeof tauriListen === 'function') {
@@ -223,6 +275,7 @@ export function initConnector(state, modeManager) {
       'brone://ekspresi', 'brone/ekspresi', 'brone:ekspresi',
       'brone://viseme', 'brone/viseme', 'brone:viseme',
       'brone://bicara', 'brone/bicara', 'brone:bicara',
+      'brone://word',
       'brone-message'
     ];
     events.forEach((evtName) => {
@@ -251,4 +304,5 @@ export function initConnector(state, modeManager) {
       };
     } catch {}
   }
+  return controller;
 }

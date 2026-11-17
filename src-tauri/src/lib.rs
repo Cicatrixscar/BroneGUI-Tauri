@@ -26,6 +26,7 @@ pub fn run() {
                     // Kontrak asli `brone-talk` (lihat docs/CONTRACT.md).
                     "robot/expression".to_string(),
                     "robot/voice_stage".to_string(),
+                    "robot/word".to_string(),
                     // Kontrak GUI lama, tetap didukung untuk uji manual.
                     "brone/face/ekspresi".to_string(),
                     "brone/face/viseme".to_string(),

@@ -11,6 +11,8 @@ export class ModeManager {
     this.staticModeAllowed = this.config.mode_statis_aktif !== false;
 
     this.onModeChange = null;
+    this.visemeController = null;
+    this.onVisemeModeChange = null;
     this.handleKeyDown = this.handleKeyDown.bind(this);
 
     window.addEventListener('keydown', this.handleKeyDown);
@@ -85,7 +87,19 @@ export class ModeManager {
       return;
     }
 
-    // Jika sedang dalam mode dinamis, abaikan semua tombol lain (AC-17.9)
+    // F4 changes the dynamic mouth source without entering manual/static mode.
+    if (this.isDynamic() && key === (this.keymap.toggleVisemeMode ?? 'F4')) {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      event.preventDefault();
+      if (event.repeat || !this.visemeController) return;
+      const sources = ['bawaan', 'streaming', 'fallback'];
+      const next = sources[(sources.indexOf(this.visemeController.mode) + 1) % sources.length];
+      this.visemeController.setMode(next);
+      this.onVisemeModeChange?.(next);
+      return;
+    }
+
+    // Mode dinamis tetap mengabaikan kontrol ekspresi/viseme manual.
     if (this.isDynamic()) {
       return;
     }

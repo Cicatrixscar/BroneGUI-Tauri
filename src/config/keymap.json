@@ -1,6 +1,7 @@
 {
   "toggleMode": "F2",
   "togglePanel": "F3",
+  "toggleVisemeMode": "F4",
   "expressions": {
     "1": "idle",
     "2": "confused",

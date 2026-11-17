@@ -1,0 +1,24 @@
+{
+  "defaults": "bawaan",
+  "selected": "streaming",
+  "cycle": [
+    "streaming",
+    "fallback",
+    "bawaan"
+  ],
+  "panelVisible": true,
+  "history": [
+    "assets/viseme/REST.svg",
+    "assets/viseme/E.svg",
+    "assets/viseme/U.svg",
+    "assets/viseme/REST.svg",
+    "assets/viseme/E.svg",
+    "assets/viseme/E.svg",
+    "assets/viseme/A.svg",
+    "assets/viseme/REST.svg",
+    "assets/HAPPIER.svg"
+  ],
+  "gap": "assets/viseme/REST.svg",
+  "end": "assets/HAPPIER.svg",
+  "closureCompleted": true
+}

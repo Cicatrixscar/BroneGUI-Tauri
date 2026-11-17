@@ -9,6 +9,49 @@ globalThis.window = {
 
 const { ModeManager } = await import('../../src/js/mode.js');
 
+test('F4 cycles viseme sources in dynamic mode without switching to static', () => {
+  const manager = new ModeManager({});
+  const selected = [];
+  manager.visemeController = {
+    mode: 'bawaan',
+    setMode(mode) { this.mode = mode; selected.push(mode); }
+  };
+  const notices = [];
+  manager.onVisemeModeChange = mode => notices.push(mode);
+  let prevented = 0;
+  const press = (extra = {}) => manager.handleKeyDown({
+    key: 'F4', preventDefault() { prevented++; }, ...extra
+  });
+  press();
+  press();
+  press();
+  assert.deepEqual(selected, ['streaming', 'fallback', 'bawaan']);
+  assert.deepEqual(notices, selected);
+  assert.equal(prevented, 3);
+  assert.equal(manager.isDynamic(), true);
+  press({ repeat: true });
+  press({ altKey: true });
+  press({ ctrlKey: true });
+  press({ metaKey: true });
+  press({ shiftKey: true });
+  manager.currentMode = 'statis';
+  press();
+  assert.equal(selected.length, 3);
+});
+
+test('viseme shortcut follows keymap and ignores manual expression keys in dynamic mode', () => {
+  const manager = new ModeManager({}, { toggleVisemeMode: 'F6', expressions: { '1': 'happy' } }, {
+    setEmotion() { assert.fail('dynamic mode must not apply manual expressions'); }
+  });
+  manager.visemeController = { mode: 'bawaan', setMode(mode) { this.mode = mode; } };
+  const press = key => manager.handleKeyDown({ key, preventDefault() {} });
+  press('F4');
+  assert.equal(manager.visemeController.mode, 'bawaan');
+  press('1');
+  press('F6');
+  assert.equal(manager.visemeController.mode, 'streaming');
+});
+
 test('ModeManager defaults to dynamic mode', () => {
   const manager = new ModeManager({
     mode: { default_mode: 'dinamis', mode_statis_aktif: true }

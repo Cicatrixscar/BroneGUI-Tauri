@@ -55,7 +55,8 @@ export class FaceState {
     this.notifyChange();
   }
 
-  setViseme(viseme) {
+  setViseme(viseme, morphMs = 100) {
+    this.visemeMorphMs = morphMs;
     this.viseme = viseme;
     this.notifyChange();
   }

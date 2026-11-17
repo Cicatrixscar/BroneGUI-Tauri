@@ -108,6 +108,28 @@ describe('Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)', () => {
     assert.equal(svg.querySelector('#mouth').getAttribute('href'), 'assets/IDLE.svg');
   });
 
+  it('streaming mouth remains independent during the eye emotion transition', t => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const calls = [];
+    const anime = params => { calls.push(params); return { pause() {}, play() {} }; };
+    anime.remove = () => {};
+    anime.set = () => {};
+    globalThis.window.anime = anime;
+    state.visemeMode = 'streaming';
+    renderer = new Renderer(svg, state, blink, mockConfig);
+    renderer.applyState(true);
+    state.setEmotion('happy');
+    state.setViseme('P_B_M', 25);
+    assert.equal(renderer.isTransitioning, true);
+    assert.equal(svg.querySelector('#mouth').getAttribute('href'), mockConfig.visemes.P_B_M);
+    t.mock.timers.tick(200);
+    assert.equal(svg.querySelector('#mouth').getAttribute('href'), mockConfig.visemes.P_B_M);
+    assert.ok(calls.some(c => Array.isArray(c.targets) && c.targets.includes('#eye-l-wrap')));
+    assert.ok(!calls.some(c => c.targets === '#layer-mouth'));
+    t.mock.timers.tick(150);
+    assert.equal(renderer.currentEmotion, 'happy');
+  });
+
   it('Transisi fallback langsung memperbarui asset saat anime.js tidak tersedia', () => {
     delete globalThis.window.anime;
     renderer = new Renderer(svg, state, blink, mockConfig);

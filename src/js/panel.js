@@ -53,7 +53,8 @@ export async function toggleFullscreen() {
 }
 
 export class ControlPanel {
-  constructor(state, modeManager, keymap = {}) {
+  constructor(state, modeManager, keymap = {}, visemeController = null) {
+    this.visemeController = visemeController;
     this.state = state;
     this.modeManager = modeManager;
     this.keymap = keymap;
@@ -92,6 +93,15 @@ export class ControlPanel {
       </div>
 
       <div class="panel-section">
+        <label for="viseme-mode">Sumber gerakan mulut saat mode dinamis (${this.keymap.toggleVisemeMode ?? 'F4'})</label>
+        <select id="viseme-mode">
+          <option value="bawaan">Bawaan (jadwal viseme)</option>
+          <option value="streaming">Streaming kata</option>
+          <option value="fallback">Fallback mulut</option>
+        </select>
+      </div>
+
+      <div class="panel-section">
         <div class="section-title">Ekspresi (1–9)</div>
         <div class="button-grid" id="expr-buttons"></div>
       </div>
@@ -103,6 +113,19 @@ export class ControlPanel {
     `;
 
     document.body.appendChild(this.panelEl);
+
+    this.visemeNotice = document.createElement('div');
+    this.visemeNotice.id = 'viseme-mode-notice';
+    this.visemeNotice.setAttribute('role', 'status');
+    this.visemeNotice.setAttribute('aria-live', 'polite');
+    this.visemeNotice.hidden = true;
+    document.body.appendChild(this.visemeNotice);
+
+    const visemeSelect = this.panelEl.querySelector('#viseme-mode');
+    if (visemeSelect && this.visemeController) {
+      visemeSelect.value = this.visemeController.mode;
+      visemeSelect.addEventListener('change', () => this.visemeController.setMode(visemeSelect.value));
+    }
 
     // Isi daftar tombol ekspresi
     const exprContainer = this.panelEl.querySelector('#expr-buttons');
@@ -206,8 +229,19 @@ export class ControlPanel {
     }
   }
 
+  showVisemeMode(mode) {
+    const labels = { bawaan: 'Bawaan (jadwal)', streaming: 'Streaming kata', fallback: 'Fallback mulut' };
+    this.visemeNotice.textContent = `${this.keymap.toggleVisemeMode ?? 'F4'} | Viseme: ${labels[mode] ?? mode}`;
+    this.visemeNotice.hidden = false;
+    clearTimeout(this.visemeNoticeTimer);
+    this.visemeNoticeTimer = setTimeout(() => { this.visemeNotice.hidden = true; }, 2000);
+  }
+
   updateActiveIndicators() {
     if (!this.panelEl || !this.state) return;
+
+    const select = this.panelEl.querySelector('#viseme-mode');
+    if (select && this.visemeController) select.value = this.visemeController.mode;
 
     // Update ekspresi aktif
     const currentEmotion = this.state.emosi;
