@@ -1,6 +1,6 @@
 # Rekapitulasi Desain: Streaming Word-by-Word Viseme & Kalibrasi Empiris
 
-Dokumen ini merangkum rancangan arsitektur integrasi sinkronisasi gerak bibir (*viseme*) terkini antara **Engine LLM/TTS (Intel NUC)** dan **BroneGUI-Tauri (Jetson Orin Nano)**, lengkap dengan data uji empiris kecepatan suara TTS robot.
+Dokumen ini merangkum rancangan arsitektur integrasi sinkronisasi gerak bibir (*viseme*) terkini antara **Engine LLM/TTS (Intel NUC)** dan **BroneGUI-Tauri (Jetson Orin Nano)**, lengkap dengan data uji empiris kecepatan suara TTS robot dan aturan fonetik detail.
 
 ---
 
@@ -8,7 +8,7 @@ Dokumen ini merangkum rancangan arsitektur integrasi sinkronisasi gerak bibir (*
 
 ### A. Latar Belakang Masalah
 * **Kendala Sebelumnya:** Mengirim seluruh jadwal timestamp viseme di muka menuntut tim LLM/TTS menghitung fonetik mikro-detik yang kompleks, serta rentan desinkronisasi jika ada jeda jaringan.
-* **Solusi Baru:** Pemindahan komputasi fonetik ke sisi GUI. LLM/TTS cukup mengirimkan **status ekspresi di awal**, lalu mengalirkan **kata demi kata secara bertahap (*word stream*)** saat audio dimainkan.
+* **Solusi Baru:** Pemindahan komputasi fonetik ke sisi GUI. LLM/TTS cukup mengirimkan **status ekspresi di awal**, lalu mengalirkan **kata demi kata secara bertahap (*word stream*)** saat audio dimainkan di speaker.
 
 ### B. Alur Kerja Sistem (Pipeline)
 
@@ -25,11 +25,11 @@ sequenceDiagram
     JS->>Screen: Wajah berubah ke "happy", buka master watchdog 6.0s
 
     loop Aliran Kata demi Kata (Streaming Words)
-        LLM->>Rust: MQTT robot/word { word: "sa-at" }
+        LLM->>Rust: MQTT robot/word { word: "be-lum" }
         Rust->>JS: Emit brone://word
-        JS->>JS: Pecah suku kata ("sa" -> A, "at" -> A), alokasi waktu ~155ms
+        JS->>JS: Budget sharing (B: 45ms, E: 105ms, U: 105ms, M: 45ms)
         JS->>Screen: Mouth Morphing meliuk sesuai suku kata
-        Note over JS,Screen: Jika kata baru ("i-ni") masuk duluan,<br/>kata lama langsung dipotong (preemption).
+        Note over JS,Screen: Jika kata baru masuk duluan,<br/>kata lama langsung dipotong (preemption).<br/>Jika ada delay, mulut tahan di REST.
     end
 
     Note over JS,Screen: Detik ke-6.0: Audio Selesai
@@ -63,17 +63,34 @@ $$\bar{t}_{\text{suku kata}} = \frac{\sum \text{Durasi Total}}{\sum \text{Suku K
 
 ---
 
-## 3. Parameter Desain Algoritma GUI
+## 3. Parameter Desain Algoritma Fonetik GUI
 
-Berdasarkan data empiris di atas, konstanta waktu yang diadopsi ke sistem frontend adalah:
+### A. Sistem Budget Sharing (150 ms per Suku Kata)
+Agar durasi gerak bibir tidak molor melampaui audio asli, durasi dasar 1 suku kata dikunci di **150 ms**:
+* **Suku Kata Biasa (Non-Bilabial, misal *"da"*):** Vokal langsung mendapat alokasi penuh **150 ms**.
+* **Suku Kata dengan Konsonan Bilabial Onset (`P, B, M` di awal, misal *"be"*):**
+  * `REST` (katup bibir rapat kilat) $\rightarrow$ **`45 ms`**
+  * Vokal `E` (bibir membuka) $\rightarrow$ **`105 ms`**
+  * *Total tetap 150 ms.*
+* **Suku Kata dengan Konsonan Bilabial Koda (`P, B, M` di akhir, misal *"lum"*):**
+  * Vokal `U` $\rightarrow$ **`105 ms`**
+  * `REST` (katup bibir penutup `M`) $\rightarrow$ **`45 ms`**
+  * *Total tetap 150 ms.*
 
-| Parameter | Nilai Konfigurasi | Keterangan |
-|---|:--:|---|
-| **Durasi Standar Suku Kata** | **`150 – 160 ms`** | Waktu dasar per suku kata (misal: kata 2 suku kata = 300–320 ms). |
-| **Vokal Terbuka Akhir Kata** | **`180 – 200 ms`** | Diberikan sedikit bobot lebih panjang untuk huruf `A`, `O` di ujung kata. |
-| **Jeda Tanda Baca (Koma/Titik)** | **`150 – 200 ms`** | Mulut beralih ke `REST` (katup rileks) untuk simulasi jeda nafas alami. |
-| **Inter-Word Cutoff (Preemption)** | **`Instant`** | Jika kata berikutnya tiba sebelum durasi kata lama selesai, langsung transisi via *Mouth Morphing*. |
-| **Post-Speech Emotion Hold** | **`5000 ms`** | Menahan ekspresi penuh selama 5 detik setelah bicara tuntas sebelum kembali ke `idle`. |
+**Contoh Simulasi Kata *"Be-lum"* (2 suku kata = 300 ms):**
+1. `"be"` $\rightarrow$ `REST` (45 ms) $\rightarrow$ `E` (105 ms) = 150 ms
+2. `"lum"` $\rightarrow$ `U` (105 ms) $\rightarrow$ `REST` (45 ms) = 150 ms
+3. *Total waktu kata tepat 300 ms.*
+
+### B. Aturan Kasus Suku Kata Khusus
+1. **Vokal Panjang di Ujung Kata (*"Haloo"*, *"Iyaaa"*):** 
+   * Menambah durasi penahanan vokal tersebut secara proporsional ($+100\text{ ms}$ per huruf vokal ekstra) tanpa mengubah bentuk mulut atau menimbulkan kedipan visual.
+2. **Vokal Kembar Terpisah (*"Sa-at"*, *"Ma-af"*):**
+   * Tidak menggunakan jeda glottal palsu / micro-REST agar tidak timbul efek *glitch/twitching*. Mulut tetap tenang di posisi `A` sepanjang total durasi 2 suku kata ($2 \times 150\text{ ms} = 300\text{ ms}$).
+3. **Jeda Antar-Kata & Jitter Buffer Jaringan:**
+   * Jika kata berikutnya belum tiba karena latensi jaringan / jeda nafas, mulut **tetap bertahan di posisi `REST` (katup rileks)**. Robot tidak akan pernah "mangap melongo" saat menunggu kata berikutnya.
+4. **Post-Speech Emotion Hold:**
+   * Ditahan selama **`5000 ms` (5 detik)** setelah audio selesai sebelum wajah kembali ke `idle`.
 
 ---
 
