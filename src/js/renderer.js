@@ -1,4 +1,5 @@
 // Renderer SVG berbasis DOM & anime.js sesuai F-01, F-04, F-09, dan F-15 (800x480).
+import { MouthMorph } from './mouthMorph.js';
 
 export class Renderer {
   constructor(svgElement, state, blinkController, config) {
@@ -16,6 +17,8 @@ export class Renderer {
     this.blushR = this.svg.querySelector('#blush-r');
     this.mouthEl = this.svg.querySelector('#mouth');
     this.mouthLayer = this.svg.querySelector('#layer-mouth');
+    this.mouthMorph = new MouthMorph(this.mouthLayer, this.mouthEl);
+    this.shouldMorphMouth = () => true;
     this.eyeLWrap = this.svg.querySelector('#eye-l-wrap');
     this.eyeRWrap = this.svg.querySelector('#eye-r-wrap');
     this.eyeL = this.svg.querySelector('#eye-l');
@@ -118,6 +121,7 @@ export class Renderer {
   render(timestamp = performance.now()) {
     // Sinkronisasi state wajah jika ada perubahan
     this.applyState();
+    this.mouthMorph.update(timestamp);
 
     // Update controller kedip
     if (this.blinkController) {
@@ -224,6 +228,7 @@ export class Renderer {
   }
 
   setMouthToFlat() {
+    this.mouthMorph.cancel();
     const flatMouthAsset = this.config.visemes?.REST || this.config.visemes?.P_B_M || 'assets/viseme/REST.svg';
     const flatMouthPos = this.config.visemePositions?.REST || this.config.visemePositions?.P_B_M || { x: 258.5, y: 366, w: 283, h: 20 };
     if (this.mouthEl) {
@@ -243,11 +248,13 @@ export class Renderer {
    * 3. Ketika mata terbuka kembali, ekspresi baru sudah aktif sepenuhnya.
    */
   transitionToEmotion(targetEmotion) {
+    this.mouthMorph.cancel();
     if (!window.anime) {
       this.updateEmotion(targetEmotion);
       this.updateMouth(targetEmotion, this.state?.viseme || 'DIAM');
       this.currentEmotion = targetEmotion;
       this.isTransitioning = false;
+      this.currentViseme = null;
       return;
     }
 
@@ -328,6 +335,7 @@ export class Renderer {
     const timer3 = setTimeout(() => {
       this.currentEmotion = targetEmotion;
       this.isTransitioning = false;
+      this.currentViseme = null;
       this.transitionTimers = [];
 
       if (this.eyeLWrap && this.eyeRWrap) {
@@ -537,24 +545,16 @@ export class Renderer {
     }
 
     if (asset) {
+      const morphing = this.mouthMorph.start(asset, { x, y, w, h },
+        !this.isTransitioning && this.shouldMorphMouth());
       this.mouthEl.setAttribute('href', asset);
       this.mouthEl.setAttribute('x', x);
       this.mouthEl.setAttribute('y', y);
       this.mouthEl.setAttribute('width', w);
       this.mouthEl.setAttribute('height', h);
-      this.mouthEl.style.display = '';
-
-      // Transisi transisi halus menggunakan anime.js jika tidak sedang dalam transisi ekspresi
-      if (window.anime && !this.isTransitioning) {
-        window.anime({
-          targets: '#layer-mouth',
-          scale: [0.94, 1.0],
-          opacity: [0.8, 1.0],
-          duration: 180,
-          easing: 'easeOutQuad'
-        });
-      }
+      this.mouthEl.style.display = morphing ? 'none' : '';
     } else {
+      this.mouthMorph.cancel();
       this.mouthEl.style.display = 'none';
     }
   }

@@ -261,10 +261,12 @@ async function initApp() {
   const renderer = new Renderer(faceSvg, state, blink, config);
 
   const modeManager = new ModeManager(config, keymap, state);
+  renderer.shouldMorphMouth = () => modeManager.isDynamic();
   const panel = new ControlPanel(state, modeManager, keymap);
   modeManager.panel = panel;
   modeManager.onModeChange = (mode) => panel.setMode(mode);
 
+  await renderer.mouthMorph.load(config);
   initConnector(state, modeManager);
   renderer.start();
 
