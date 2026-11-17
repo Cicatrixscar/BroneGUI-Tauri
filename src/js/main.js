@@ -122,6 +122,12 @@ const DEFAULT_CONFIG = {
       mouth: { asset: 'assets/LOAD MOUTH.svg', x: 264.5, y: 338, w: 271, h: 52 },
       effect: { asset: 'assets/TANDA TANYA.svg', x: 700, y: 43, w: 60, h: 89 }
     },
+    thinking: {
+      eyeL: { asset: 'assets/LOAD EYE.svg', x: 103, y: 167, w: 142, h: 145, cx: 174, cy: 239.5 },
+      eyeR: { asset: 'assets/MATA.svg', x: 556, y: 154, w: 129, h: 171, cx: 620.5, cy: 239.5 },
+      mouth: { asset: 'assets/LOAD MOUTH.svg', x: 264.5, y: 338, w: 271, h: 52 },
+      effect: { asset: 'assets/TANDA TANYA.svg', x: 700, y: 43, w: 60, h: 89 }
+    },
     timeout: {
       eyeL: { asset: 'assets/TIMEOUT EYE LEFT.svg', x: 93.4, y: 130.65, w: 160, h: 162, cx: 177.76, cy: 214.88 },
       eyeR: { asset: 'assets/TIMEOUT EYE RIGHT.svg', x: 547.4, y: 130.65, w: 160, h: 162, cx: 622.24, cy: 208.04 },
@@ -171,9 +177,10 @@ const DEFAULT_CONFIG = {
     durationMs: 350
   },
   bicara: {
-    fallbackMulutAktif: false,
+    fallbackMulutAktif: true,
     fallbackIntervalMs: 140,
-    fallbackWatchdogMs: 10000
+    fallbackWatchdogMs: 10000,
+    holdAfterSpeechMs: 4000
   },
   mode: {
     mode_statis_aktif: true,

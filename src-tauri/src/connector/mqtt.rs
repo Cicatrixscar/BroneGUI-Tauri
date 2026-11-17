@@ -34,12 +34,12 @@ impl Default for MqttConfig {
     }
 }
 
-fn parse_pesan(topic: &str, payload: &str) -> Result<Option<Pesan>, String> {
+fn parse_pesan(topic: &str, payload: &str) -> Result<Vec<Pesan>, String> {
     if topic.starts_with("robot/") {
         pesan_dari_llm(topic, payload)
     } else {
         serde_json::from_str::<Pesan>(payload)
-            .map(Some)
+            .map(|p| vec![p])
             .map_err(|e| format!("JSON tidak sesuai kontrak GUI: {e}"))
     }
 }
@@ -87,35 +87,39 @@ pub async fn start_mqtt_client(app_handle: AppHandle, config: MqttConfig) {
                 info!("[MQTT] Pesan masuk di '{}': {}", publish.topic, payload_str);
 
                 match parse_pesan(&publish.topic, payload_str) {
-                    Ok(Some(pesan)) => {
-                        // Validasi pesan (AC-17.4 / CONTRACT.md)
-                        if let Err(err_msg) = validasi_pesan(&pesan) {
-                            warn!(
-                                "[MQTT] Pesan dibuang karena tidak valid: {} (payload: {})",
-                                err_msg, payload_str
+                    Ok(pesan_list) => {
+                        if pesan_list.is_empty() {
+                            info!(
+                                "[MQTT] Pesan di topik '{}' tidak mengubah wajah, diabaikan.",
+                                publish.topic
                             );
                             continue;
                         }
 
-                        // Pancarkan event ke Frontend Tauri
-                        let event_name = match &pesan {
-                            Pesan::Ekspresi { .. } => "brone://ekspresi",
-                            Pesan::Viseme { .. } => "brone://viseme",
-                            Pesan::Bicara { .. } => "brone://bicara",
-                        };
+                        for pesan in pesan_list {
+                            // Validasi pesan (AC-17.4 / CONTRACT.md)
+                            if let Err(err_msg) = validasi_pesan(&pesan) {
+                                warn!(
+                                    "[MQTT] Pesan dibuang karena tidak valid: {} (payload: {})",
+                                    err_msg, payload_str
+                                );
+                                continue;
+                            }
 
-                        let val = serde_json::to_value(&pesan).unwrap_or_default();
+                            // Pancarkan event ke Frontend Tauri
+                            let event_name = match &pesan {
+                                Pesan::Ekspresi { .. } => "brone://ekspresi",
+                                Pesan::Viseme { .. } => "brone://viseme",
+                                Pesan::Bicara { .. } => "brone://bicara",
+                            };
 
-                        // Emit ke event spesifik sesuai tipe pesan ke Frontend
-                        if let Err(e) = app_handle.emit(event_name, &val) {
-                            error!("[Tauri IPC] Gagal memancarkan event '{}': {}", event_name, e);
+                            let val = serde_json::to_value(&pesan).unwrap_or_default();
+
+                            // Emit ke event spesifik sesuai tipe pesan ke Frontend
+                            if let Err(e) = app_handle.emit(event_name, &val) {
+                                error!("[Tauri IPC] Gagal memancarkan event '{}': {}", event_name, e);
+                            }
                         }
-                    }
-                    Ok(None) => {
-                        info!(
-                            "[MQTT] Pesan di topik '{}' tidak mengubah wajah, diabaikan.",
-                            publish.topic
-                        );
                     }
                     Err(e) => {
                         warn!(

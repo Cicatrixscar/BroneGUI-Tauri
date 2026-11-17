@@ -16,6 +16,7 @@ pub const VALID_EMOSI: &[&str] = &[
     "cry",
     "shock",
     "confused",
+    "thinking",
     "timeout",
     // Alias lama (Indonesian) untuk kompatibilitas
     "netral",
@@ -63,6 +64,8 @@ pub enum Pesan {
     #[serde(rename = "bicara")]
     Bicara {
         status: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        durasi_s: Option<f32>,
     },
 }
 
@@ -72,10 +75,18 @@ fn default_intensitas() -> f32 {
 
 #[derive(Deserialize)]
 struct LlmExpression {
-    expression: String,
-    /// Durasi audio TTS dalam detik (format `brone-talk`).
+    #[serde(default)]
+    expression: Option<String>,
+    #[serde(default)]
+    emosi: Option<String>,
     #[serde(default)]
     duration: Option<f64>,
+    #[serde(default)]
+    durasi_s: Option<f64>,
+    #[serde(default)]
+    viseme: Option<Vec<VisemeItem>>,
+    #[serde(default)]
+    jadwal: Option<Vec<VisemeItem>>,
 }
 
 #[derive(Deserialize)]
@@ -112,28 +123,61 @@ fn ekspresi(emosi: &str) -> Pesan {
 }
 
 /// Menerjemahkan payload mentah `robot/#` dari LLM ke kontrak internal GUI.
-pub fn pesan_dari_llm(topic: &str, payload: &str) -> Result<Option<Pesan>, String> {
+/// Mendukung payload tunggal maupun gabungan (ekspresi + durasi + viseme jadwal).
+pub fn pesan_dari_llm(topic: &str, payload: &str) -> Result<Vec<Pesan>, String> {
     if topic == TOPIC_LLM_EKSPRESI {
         let raw: LlmExpression = serde_json::from_str(payload)
             .map_err(|e| format!("JSON ekspresi LLM tidak valid: {e}"))?;
-        if raw.expression.eq_ignore_ascii_case("speaking") {
-            // GUI tidak menerima emosi "speaking"; ini penanda mulai bicara.
-            return Ok(Some(Pesan::Bicara {
-                status: "mulai".into(),
-            }));
+
+        let raw_expr = raw.expression.or(raw.emosi);
+        let duration = raw.duration.or(raw.durasi_s);
+        let visemes = raw.viseme.or(raw.jadwal);
+
+        let mut pesan_list = Vec::new();
+
+        if let Some(expr_str) = raw_expr {
+            if expr_str.eq_ignore_ascii_case("speaking") {
+                // Skenario 1: Penanda mulai bicara format lama
+                pesan_list.push(Pesan::Bicara {
+                    status: "mulai".into(),
+                    durasi_s: duration.map(|d| d as f32),
+                });
+            } else if let Some(emosi) = petakan_emosi(&expr_str) {
+                // Skenario 2: Emosi asli (happy, sad, idle, dsb)
+                let durasi_ms = duration
+                    .map(|detik| (detik.max(0.0) * 1000.0) as u32)
+                    .filter(|ms| *ms > 0);
+
+                pesan_list.push(Pesan::Ekspresi {
+                    id: String::new(),
+                    emosi: emosi.into(),
+                    intensitas: 1.0,
+                    durasi_ms,
+                });
+
+                // Jika membawa durasi suara, emit juga bicara mulai
+                if let Some(d) = duration {
+                    pesan_list.push(Pesan::Bicara {
+                        status: "mulai".into(),
+                        durasi_s: Some(d as f32),
+                    });
+                }
+            } else {
+                return Err(format!("Ekspresi LLM tidak dikenal: {}", expr_str));
+            }
         }
-        let emosi = petakan_emosi(&raw.expression)
-            .ok_or_else(|| format!("Ekspresi LLM tidak dikenal: {}", raw.expression))?;
-        let durasi_ms = raw
-            .duration
-            .map(|detik| (detik.max(0.0) * 1000.0) as u32)
-            .filter(|ms| *ms > 0);
-        Ok(Some(Pesan::Ekspresi {
-            id: String::new(),
-            emosi: emosi.into(),
-            intensitas: 1.0,
-            durasi_ms,
-        }))
+
+        // Jika membawa jadwal viseme (paket gabungan cerdas)
+        if let Some(v_list) = visemes {
+            if !v_list.is_empty() {
+                pesan_list.push(Pesan::Viseme {
+                    id: String::new(),
+                    jadwal: v_list,
+                });
+            }
+        }
+
+        Ok(pesan_list)
     } else if topic == TOPIC_LLM_VOICE_STAGE {
         let raw: LlmVoiceStage = serde_json::from_str(payload)
             .map_err(|e| format!("JSON voice_stage LLM tidak valid: {e}"))?;
@@ -141,17 +185,20 @@ pub fn pesan_dari_llm(topic: &str, payload: &str) -> Result<Option<Pesan>, Strin
         let state = raw.state.to_ascii_lowercase();
 
         if stage == "error" || state == "error" {
-            return Ok(Some(ekspresi("timeout")));
+            return Ok(vec![ekspresi("timeout")]);
         }
         match (stage.as_str(), state.as_str()) {
-            ("llm", "start") => Ok(Some(ekspresi("confused"))),
-            ("tts", "start") => Ok(Some(Pesan::Bicara {
+            ("llm", "start") => Ok(vec![ekspresi("confused")]),
+            ("tts", "start") => Ok(vec![Pesan::Bicara {
                 status: "mulai".into(),
-            })),
-            ("tts", _) => Ok(Some(Pesan::Bicara {
+                durasi_s: None,
+            }]),
+            ("tts", _) => Ok(vec![Pesan::Bicara {
                 status: "selesai".into(),
-            })),
-            _ => Ok(None),
+                durasi_s: None,
+            }]),
+            ("idle", "standby") => Ok(vec![ekspresi("idle")]),
+            _ => Ok(vec![]),
         }
     } else {
         Err(format!("Topik LLM tidak dikenal: {topic}"))
@@ -184,9 +231,14 @@ pub fn validasi_pesan(p: &Pesan) -> Result<(), &'static str> {
             }
             Ok(())
         }
-        Pesan::Bicara { status } => {
+        Pesan::Bicara { status, durasi_s } => {
             if status != "mulai" && status != "selesai" {
                 return Err("Status bicara harus 'mulai' atau 'selesai'");
+            }
+            if let Some(d) = durasi_s {
+                if *d < 0.0 {
+                    return Err("Durasi bicara tidak boleh negatif");
+                }
             }
             Ok(())
         }
@@ -259,49 +311,78 @@ mod tests {
 
     #[test]
     fn test_validasi_bicara() {
-        let b1 = Pesan::Bicara { status: "mulai".into() };
+        let b1 = Pesan::Bicara { status: "mulai".into(), durasi_s: None };
         assert!(validasi_pesan(&b1).is_ok());
 
-        let b2 = Pesan::Bicara { status: "selesai".into() };
+        let b2 = Pesan::Bicara { status: "selesai".into(), durasi_s: Some(3.5) };
         assert!(validasi_pesan(&b2).is_ok());
 
-        let b3 = Pesan::Bicara { status: "berhenti".into() };
+        let b3 = Pesan::Bicara { status: "berhenti".into(), durasi_s: None };
         assert!(validasi_pesan(&b3).is_err());
     }
 
     #[test]
     fn test_adapter_ekspresi_llm() {
         let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"neutral"}"#)
-            .unwrap()
             .unwrap();
-        assert_eq!(p, ekspresi("idle"));
+        assert_eq!(p, vec![ekspresi("idle")]);
 
         let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"excited"}"#)
-            .unwrap()
             .unwrap();
-        assert_eq!(p, ekspresi("happier"));
+        assert_eq!(p, vec![ekspresi("happier")]);
 
         let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"confused"}"#)
-            .unwrap()
             .unwrap();
-        assert_eq!(p, ekspresi("confused"));
+        assert_eq!(p, vec![ekspresi("confused")]);
 
         let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"speaking","duration":4}"#)
-            .unwrap()
             .unwrap();
-        assert_eq!(p, Pesan::Bicara { status: "mulai".into() });
+        assert_eq!(p, vec![Pesan::Bicara { status: "mulai".into(), durasi_s: Some(4.0) }]);
 
         let p = pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"happy","duration":2.5}"#)
-            .unwrap()
             .unwrap();
         assert_eq!(
             p,
-            Pesan::Ekspresi {
-                id: String::new(),
-                emosi: "happy".into(),
-                intensitas: 1.0,
-                durasi_ms: Some(2500),
-            }
+            vec![
+                Pesan::Ekspresi {
+                    id: String::new(),
+                    emosi: "happy".into(),
+                    intensitas: 1.0,
+                    durasi_ms: Some(2500),
+                },
+                Pesan::Bicara {
+                    status: "mulai".into(),
+                    durasi_s: Some(2.5),
+                }
+            ]
+        );
+
+        // Paket gabungan ekspresi + viseme
+        let p = pesan_dari_llm(
+            TOPIC_LLM_EKSPRESI,
+            r#"{"expression":"happy","duration":2.0,"viseme":[{"t":0.0,"v":"REST"},{"t":0.1,"v":"A"}]}"#,
+        ).unwrap();
+        assert_eq!(
+            p,
+            vec![
+                Pesan::Ekspresi {
+                    id: String::new(),
+                    emosi: "happy".into(),
+                    intensitas: 1.0,
+                    durasi_ms: Some(2000),
+                },
+                Pesan::Bicara {
+                    status: "mulai".into(),
+                    durasi_s: Some(2.0),
+                },
+                Pesan::Viseme {
+                    id: String::new(),
+                    jadwal: vec![
+                        VisemeItem { t: 0.0, v: "REST".into() },
+                        VisemeItem { t: 0.1, v: "A".into() },
+                    ],
+                }
+            ]
         );
 
         assert!(pesan_dari_llm(TOPIC_LLM_EKSPRESI, r#"{"expression":"marah"}"#).is_err());
@@ -313,24 +394,25 @@ mod tests {
             TOPIC_LLM_VOICE_STAGE,
             r#"{"stage":"llm","state":"start","ts":1.0}"#,
         )
-        .unwrap()
         .unwrap();
-        assert_eq!(p, ekspresi("confused"));
+        assert_eq!(p, vec![ekspresi("confused")]);
 
         let p = pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"error","state":"llm"}"#)
-            .unwrap()
             .unwrap();
-        assert_eq!(p, ekspresi("timeout"));
+        assert_eq!(p, vec![ekspresi("timeout")]);
 
         let p = pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"tts","state":"start"}"#)
-            .unwrap()
             .unwrap();
-        assert_eq!(p, Pesan::Bicara { status: "mulai".into() });
+        assert_eq!(p, vec![Pesan::Bicara { status: "mulai".into(), durasi_s: None }]);
 
         let p = pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"tts","state":"end"}"#)
-            .unwrap()
             .unwrap();
-        assert_eq!(p, Pesan::Bicara { status: "selesai".into() });
+        assert_eq!(p, vec![Pesan::Bicara { status: "selesai".into(), durasi_s: None }]);
+
+        assert!(pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"vad","state":"start"}"#)
+            .unwrap()
+            .is_empty());
+    }
 
         assert!(pesan_dari_llm(TOPIC_LLM_VOICE_STAGE, r#"{"stage":"vad","state":"start"}"#)
             .unwrap()
