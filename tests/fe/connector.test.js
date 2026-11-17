@@ -164,3 +164,73 @@ describe('Connector — fallback mulut bicara (nonaktif default)', () => {
   });
 });
 
+describe('Connector — post-speech emotion hold & interupsi', () => {
+  it('menahan ekspresi setelah bicara selesai selama holdAfterSpeechMs lalu kembali ke idle', (_, done) => {
+    const state = buatStateMock({
+      bicara: {
+        holdAfterSpeechMs: 60,
+      },
+    });
+    initConnector(state, modeManagerLolos);
+
+    // Mulai dengan emosi happy
+    window.sendBroneMessage({ tipe: 'ekspresi', emosi: 'happy' });
+    assert.equal(state.emosi, 'happy');
+
+    // Bicara selesai
+    window.sendBroneMessage({ tipe: 'bicara', status: 'selesai' });
+    // Pada 20ms pertama, ekspresi masih bertahan 'happy' (belum reset ke idle)
+    setTimeout(() => {
+      assert.equal(state.emosi, 'happy');
+    }, 20);
+
+    // Setelah 100ms (> 60ms), ekspresi otomatis kembali ke 'idle'
+    setTimeout(() => {
+      assert.equal(state.emosi, 'idle');
+      done();
+    }, 100);
+  });
+
+  it('interupsi baru membatalkan hold timer dan langsung beralih ke emosi baru', (_, done) => {
+    const state = buatStateMock({
+      bicara: {
+        holdAfterSpeechMs: 150,
+      },
+    });
+    initConnector(state, modeManagerLolos);
+
+    // Mulai dengan emosi happy lalu bicara selesai
+    window.sendBroneMessage({ tipe: 'ekspresi', emosi: 'happy' });
+    window.sendBroneMessage({ tipe: 'bicara', status: 'selesai' });
+
+    // Pada 30ms (saat masih masa hold), datang pesan baru 'confused' (robot berpikir)
+    setTimeout(() => {
+      window.sendBroneMessage({ tipe: 'ekspresi', emosi: 'confused' });
+      assert.equal(state.emosi, 'confused');
+    }, 30);
+
+    // Pada 200ms (> 150ms hold awal), pastikan tidak ter-reset ke 'idle' oleh timer lama
+    setTimeout(() => {
+      assert.equal(state.emosi, 'confused');
+      done();
+    }, 200);
+  });
+
+  it('paket gabungan ekspresi + viseme mengaktifkan emosi dan jadwal viseme bersamaan', (_, done) => {
+    const state = buatStateMock();
+    initConnector(state, modeManagerLolos);
+
+    window.sendBroneMessage({
+      tipe: 'ekspresi',
+      emosi: 'happy',
+      viseme: [{ t: 0, v: 'REST' }, { t: 0.05, v: 'A' }]
+    });
+
+    assert.equal(state.emosi, 'happy');
+    setTimeout(() => {
+      assert.equal(state.viseme, 'A');
+      done();
+    }, 70);
+  });
+});
+

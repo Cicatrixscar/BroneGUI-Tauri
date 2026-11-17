@@ -108,6 +108,12 @@
       "mouth": { "asset": "assets/LOAD MOUTH.svg", "x": 264.5, "y": 338, "w": 271, "h": 52 },
       "effect": { "asset": "assets/TANDA TANYA.svg", "x": 700, "y": 43, "w": 60, "h": 89 }
     },
+    "thinking": {
+      "eyeL": { "asset": "assets/LOAD EYE.svg", "x": 103, "y": 167, "w": 142, "h": 145, "cx": 174, "cy": 239.5 },
+      "eyeR": { "asset": "assets/MATA.svg", "x": 556, "y": 154, "w": 129, "h": 171, "cx": 620.5, "cy": 239.5 },
+      "mouth": { "asset": "assets/LOAD MOUTH.svg", "x": 264.5, "y": 338, "w": 271, "h": 52 },
+      "effect": { "asset": "assets/TANDA TANYA.svg", "x": 700, "y": 43, "w": 60, "h": 89 }
+    },
     "sangat_senang_transisi": {
       "eyeL": { "asset": "assets/MATA HAPPIER TRANSITION.svg", "x": 95.4, "y": 159.3, "w": 156, "h": 153, "cx": 173.4, "cy": 235.8 },
       "eyeR": { "asset": "assets/MATA HAPPIER TRANSITION KANAN.svg", "x": 549, "y": 159.3, "w": 156, "h": 153, "cx": 627, "cy": 235.8 },
@@ -162,9 +168,10 @@
     "durationMs": 350
   },
   "bicara": {
-    "fallbackMulutAktif": false,
+    "fallbackMulutAktif": true,
     "fallbackIntervalMs": 140,
-    "fallbackWatchdogMs": 10000
+    "fallbackWatchdogMs": 10000,
+    "holdAfterSpeechMs": 4000
   },
   "transition": {
     "defaultDurationMs": 400,

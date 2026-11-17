@@ -31,7 +31,29 @@ export function initConnector(state, modeManager) {
   const fallbackIntervalMs = fallbackConfig.fallbackIntervalMs ?? 140;
   const fallbackWatchdogMs = fallbackConfig.fallbackWatchdogMs ?? 10000;
 
-  function hentikanFallbackMulut(reset = true) {
+  // Timer untuk menahan ekspresi setelah bicara sebelum kembali ke idle (Post-Speech Emotion Hold)
+  let _postSpeechHoldTimer = null;
+  const holdAfterSpeechMs = fallbackConfig.holdAfterSpeechMs ?? 4000;
+
+  function batalkanHoldTimer() {
+    if (_postSpeechHoldTimer !== null) {
+      clearTimeout(_postSpeechHoldTimer);
+      _postSpeechHoldTimer = null;
+    }
+  }
+
+  function mulaiPostSpeechHold() {
+    batalkanHoldTimer();
+    const emosiSaatIni = state?.emosi || state?.emotion;
+    if (emosiSaatIni && emosiSaatIni !== 'idle' && emosiSaatIni !== 'netral') {
+      _postSpeechHoldTimer = setTimeout(() => {
+        _postSpeechHoldTimer = null;
+        state.setEmotion('idle', 1.0);
+      }, holdAfterSpeechMs);
+    }
+  }
+
+  function hentikanFallbackMulut(reset = true, triggerHold = false) {
     if (_fallbackTimer !== null) {
       clearInterval(_fallbackTimer);
       _fallbackTimer = null;
@@ -41,9 +63,10 @@ export function initConnector(state, modeManager) {
       _fallbackWatchdog = null;
     }
     if (reset) state.setViseme('DIAM');
+    if (triggerHold) mulaiPostSpeechHold();
   }
 
-  function mulaiFallbackMulut() {
+  function mulaiFallbackMulut(durasiS) {
     if (!fallbackAktif) return;
     hentikanFallbackMulut(false);
 
@@ -57,9 +80,13 @@ export function initConnector(state, modeManager) {
       state.setViseme(vokal[index]);
     }, fallbackIntervalMs);
 
+    const batasWaktuMs = (typeof durasiS === 'number' && durasiS > 0)
+      ? durasiS * 1000
+      : fallbackWatchdogMs;
+
     _fallbackWatchdog = setTimeout(() => {
-      hentikanFallbackMulut();
-    }, fallbackWatchdogMs);
+      hentikanFallbackMulut(true, true);
+    }, batasWaktuMs);
   }
 
   /**
@@ -97,6 +124,7 @@ export function initConnector(state, modeManager) {
     const tAkhir = terurut[terurut.length - 1].t;
     const watchdogId = setTimeout(() => {
       state.setViseme('DIAM');
+      mulaiPostSpeechHold();
     }, tAkhir * 1000 + 500);
     _visemeTimers.push(watchdogId);
   }
@@ -116,6 +144,9 @@ export function initConnector(state, modeManager) {
     }
     if (!payload || typeof payload !== 'object') return;
 
+    // Batalkan hold timer sebelumnya bila ada aktivitas baru yang masuk (interupsi cepat)
+    batalkanHoldTimer();
+
     // Deduplikasi jika pesan identik tiba ganda dalam kurun < 30ms (mencegah trigger ganda)
     const payloadStr = JSON.stringify(payload);
     const now = performance.now();
@@ -133,7 +164,7 @@ export function initConnector(state, modeManager) {
     const { tipe } = payload;
 
     if (tipe === 'ekspresi') {
-      const { emosi: rawEmosi, intensitas = 1.0, durasi_ms } = payload;
+      const { emosi: rawEmosi, intensitas = 1.0, durasi_ms, jadwal, viseme: visemeJadwal, durasi_s, duration } = payload;
       const emosi = EMOTION_ALIASES[rawEmosi] || rawEmosi;
 
       // Batalkan timer ekspresi sebelumnya jika ada
@@ -143,6 +174,16 @@ export function initConnector(state, modeManager) {
       }
 
       state.setEmotion(emosi, intensitas);
+
+      // Jika payload membawa jadwal viseme (paket gabungan)
+      const listJadwal = jadwal || visemeJadwal;
+      if (Array.isArray(listJadwal) && listJadwal.length > 0) {
+        hentikanFallbackMulut(false);
+        jalankanJadwalViseme(listJadwal);
+      } else if (durasi_s || duration) {
+        // Jika membawa durasi suara tanpa jadwal viseme eksplisit
+        mulaiFallbackMulut(durasi_s || duration);
+      }
 
       // Auto-reset ke idle setelah durasi_ms jika diset
       if (typeof durasi_ms === 'number' && durasi_ms > 0) {
@@ -159,12 +200,14 @@ export function initConnector(state, modeManager) {
     } else if (tipe === 'bicara') {
       const { status } = payload;
       if (status === 'selesai') {
-        // Hentikan jadwal viseme dan reset ke diam
+        // Hentikan jadwal viseme dan reset ke diam, lalu tahan ekspresi sebelum kembali ke idle
         hentikanFallbackMulut(false);
         batalkanVisemeTimers();
         state.setViseme('DIAM');
+        mulaiPostSpeechHold();
       } else if (status === 'mulai') {
-        mulaiFallbackMulut();
+        const durasiS = payload.durasi_s || payload.duration;
+        mulaiFallbackMulut(durasiS);
       }
     }
   };
