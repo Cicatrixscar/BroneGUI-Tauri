@@ -180,7 +180,7 @@ const DEFAULT_CONFIG = {
     fallbackMulutAktif: false,
     fallbackIntervalMs: 140,
     fallbackWatchdogMs: 10000,
-    holdAfterSpeechMs: 4000
+    holdAfterSpeechMs: 5000
   },
   mode: {
     mode_statis_aktif: true,

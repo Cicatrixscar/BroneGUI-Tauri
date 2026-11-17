@@ -33,7 +33,7 @@ export function initConnector(state, modeManager) {
 
   // Timer untuk menahan ekspresi setelah bicara sebelum kembali ke idle (Post-Speech Emotion Hold)
   let _postSpeechHoldTimer = null;
-  const holdAfterSpeechMs = fallbackConfig.holdAfterSpeechMs ?? 4000;
+  const holdAfterSpeechMs = fallbackConfig.holdAfterSpeechMs ?? 5000;
 
   function batalkanHoldTimer() {
     if (_postSpeechHoldTimer !== null) {
