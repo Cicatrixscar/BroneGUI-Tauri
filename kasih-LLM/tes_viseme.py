@@ -52,28 +52,27 @@ SKENARIO = [
     },
     {
         "id": 3,
-        "nama": "Paket GABUNGAN: ekspresi + durasi + viseme jadwal",
+        "nama": "Paket GABUNGAN: ekspresi + durasi + viseme jadwal (format Indonesia)",
         "keterangan": "Ini skenario utama viseme! Wajah ganti ke 'happy', "
-                      "viseme schedule jalan (REST→A→I→U→E→REST→DIAM), mulut ikut suku kata.",
+                      "viseme schedule jalan (REST→A→O→REST→A), mulut ikut suku kata. "
+                      "Pakai field Indonesia: 'ekspresi', 'durasi_s', 'viseme'.",
         "topic": TOPIC_EKSPRESI,
         "payload": {
-            "expression": "happy",
-            "duration": 3.2,
+            "ekspresi": "happy",       # alias Indonesia — diterima backend
+            "durasi_s": 3.2,           # alias Indonesia untuk 'duration'
             "viseme": [
                 {"t": 0.0,  "v": "REST"},
-                {"t": 0.15, "v": "A"},      # "ha"
-                {"t": 0.4,  "v": "REST"},
-                {"t": 0.6,  "v": "I"},      # "ni"
+                {"t": 0.1,  "v": "A"},
+                {"t": 0.25, "v": "O"},
+                {"t": 0.45, "v": "REST"},
+                {"t": 0.6,  "v": "A"},
                 {"t": 0.9,  "v": "REST"},
-                {"t": 1.1,  "v": "A"},      # "ba"
-                {"t": 1.35, "v": "REST"},
-                {"t": 1.6,  "v": "I"},      # "ik"
-                {"t": 1.85, "v": "REST"},
-                {"t": 2.1,  "v": "U"},      # "bu"
-                {"t": 2.4,  "v": "REST"},
-                {"t": 2.7,  "v": "A"},      # "ya"
-                {"t": 3.0,  "v": "REST"},
-                {"t": 3.2,  "v": "DIAM"},   # selesai
+                {"t": 1.2,  "v": "I"},
+                {"t": 1.5,  "v": "REST"},
+                {"t": 2.0,  "v": "U"},
+                {"t": 2.5,  "v": "REST"},
+                {"t": 3.0,  "v": "A"},
+                {"t": 3.2,  "v": "DIAM"},
             ],
         },
     },

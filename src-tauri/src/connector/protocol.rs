@@ -79,6 +79,9 @@ struct LlmExpression {
     expression: Option<String>,
     #[serde(default)]
     emosi: Option<String>,
+    /// Alias Indonesia penuh untuk "expression"
+    #[serde(default)]
+    ekspresi: Option<String>,
     #[serde(default)]
     duration: Option<f64>,
     #[serde(default)]
@@ -129,7 +132,7 @@ pub fn pesan_dari_llm(topic: &str, payload: &str) -> Result<Vec<Pesan>, String> 
         let raw: LlmExpression = serde_json::from_str(payload)
             .map_err(|e| format!("JSON ekspresi LLM tidak valid: {e}"))?;
 
-        let raw_expr = raw.expression.or(raw.emosi);
+        let raw_expr = raw.expression.or(raw.emosi).or(raw.ekspresi);
         let duration = raw.duration.or(raw.durasi_s);
         let visemes = raw.viseme.or(raw.jadwal);
 
