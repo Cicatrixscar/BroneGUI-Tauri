@@ -79,18 +79,14 @@ export function initConnector(state, modeManager) {
     if (visemeMode !== 'fallback') return;
     hentikanFallbackMulut(false);
 
-    // Mulai dari bentuk mulut ekspresi aktif, bukan langsung lompat ke vokal.
+    // Mulai dari bentuk mulut ekspresi aktif, bukan langsung lompat ke viseme fallback.
     state.setViseme('DIAM');
 
-    const vokal = ['A', 'I', 'U', 'E', 'O'];
-    let index = -1;
+    const fallbackVisemes = ['O', 'REST'];
+    let index = 1;
     _fallbackTimer = setInterval(() => {
-      let nextIndex;
-      do {
-        nextIndex = Math.floor(Math.random() * vokal.length);
-      } while (nextIndex === index);
-      index = nextIndex;
-      state.setViseme(vokal[index]);
+      index = index === 0 ? 1 : 0;
+      state.setViseme(fallbackVisemes[index]);
     }, fallbackIntervalMs);
 
     const batasWaktuMs = (typeof durasiS === 'number' && durasiS > 0)

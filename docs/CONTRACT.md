@@ -21,7 +21,7 @@ Broker Mosquitto berjalan di Jetson (`0.0.0.0:1883`). LLM di NUC mengirim format
 
 Ekspresi LLM di luar tabel di atas ditolak dan dicatat di log. Nama `speaking` bukan emosi; GUI tidak mengganti ekspresi saat menerimanya.
 
-Catatan: `brone-talk` belum mengirim jadwal viseme. Default: `bicara=mulai` tidak membuat gerakan mulut; mulut mengikuti bentuk ekspresi aktif. Tersedia fallback mulut sintetis di `src/js/connector.js`, tetapi nonaktif default. Aktifkan `bicara.fallbackMulutAktif: true` hanya bila viseme dinamis gagal. Fallback mulai dari bentuk mulut ekspresi aktif, lalu mengganti vokal `A/I/U/E/O` setiap `fallbackIntervalMs`, dan berhenti saat `bicara=selesai` atau setelah `fallbackWatchdogMs`.
+Catatan: `brone-talk` belum mengirim jadwal viseme. Default: `bicara=mulai` tidak membuat gerakan mulut; mulut mengikuti bentuk ekspresi aktif. Tersedia fallback mulut sintetis di `src/js/connector.js`, tetapi nonaktif default. Aktifkan `bicara.fallbackMulutAktif: true` hanya bila viseme dinamis gagal. Fallback mulai dari bentuk mulut ekspresi aktif, lalu bergantian antara viseme `O` dan `REST` setiap `fallbackIntervalMs`, dan berhenti saat `bicara=selesai` atau setelah `fallbackWatchdogMs`.
 
 Topik lama `brone/face/ekspresi`, `brone/face/viseme`, dan `brone/face/bicara` tetap diterima untuk uji manual dengan kontrak internal di bawah.
 

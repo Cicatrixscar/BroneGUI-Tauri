@@ -82,7 +82,7 @@ test('explicit modes are exclusive; switching and static mode cancel speech time
   send({ tipe: 'bicara', status: 'mulai', durasi_s: 1 });
   send({ tipe: 'viseme', jadwal: [{ t: 0, v: 'REST' }] });
   tick(20);
-  assert.ok(['A', 'I', 'U', 'E', 'O'].includes(state.viseme));
+  assert.ok(['O', 'REST'].includes(state.viseme));
   controller.stop(); // main's mode-change callback, before entering static mode
   mode.handleIncomingMessage = () => false;
   send({ tipe: 'word', word: 'belum' });
