@@ -552,9 +552,94 @@ Pemetaan: `neutral` → `idle`, `excited` → `happier`, `confused` → `confuse
 { "tipe": "bicara", "status": "selesai" }
 ```
 
-**Topics LLM:** `robot/expression` · `robot/voice_stage`
+**Topics LLM:** `robot/expression` · `robot/voice_stage` · `robot/word`
 
 **Topics uji manual (kontrak internal):** `brone/face/ekspresi` · `brone/face/viseme` · `brone/face/bicara`
+
+---
+
+### Panduan Tembak API per Mode Viseme
+
+Mode viseme dapat diganti secara langsung saat aplikasi berjalan dengan menekan tombol **`F4` di mode dinamis** (berganti memutar: `bawaan` $\rightarrow$ `streaming` $\rightarrow$ `fallback`), atau melalui konfigurasi `"bicara.visemeMode"` di `src/config/config.json`.
+
+#### 1. Mode Bawaan (`visemeMode: "bawaan"`)
+Menjalankan jadwal viseme statis/pre-calculated yang sudah memiliki timestamp detik (`t`) relatif terhadap audio.
+
+* **Topik MQTT:** `robot/expression`
+* **Format Payload Gabungan:**
+```json
+{
+  "expression": "happy",
+  "duration": 3.2,
+  "viseme": [
+    { "t": 0.00, "v": "REST" },
+    { "t": 0.15, "v": "A" },
+    { "t": 0.45, "v": "O" },
+    { "t": 0.75, "v": "REST" },
+    { "t": 1.10, "v": "A" },
+    { "t": 3.20, "v": "DIAM" }
+  ]
+}
+```
+* **Contoh Tembak:**
+  * Terminal dev-server: `node scripts/send.js '{"tipe":"ekspresi","emosi":"happy","durasi_s":3.2,"jadwal":[{"t":0,"v":"REST"},{"t":0.2,"v":"A"},{"t":3.2,"v":"DIAM"}]}'`
+  * MQTT: `mosquitto_pub -h 127.0.0.1 -t "robot/expression" -m '{"expression":"happy","duration":3.2,"viseme":[{"t":0,"v":"REST"},{"t":0.2,"v":"A"},{"t":3.2,"v":"DIAM"}]}'`
+
+---
+
+#### 2. Mode Streaming Kata (`visemeMode: "streaming"`)
+Menerima kata demi kata secara bertahap saat audio dimainkan di speaker. GUI memecah suku kata secara on-the-fly dengan budget 150ms per suku kata, mendukung preemption instan, budget sharing PBM (45ms REST), dan pengejaan akronim kapital (misal: "BCA").
+
+* **Tahap 1 — Set Ekspresi & Master Timer di awal kalimat:**
+  * Topik: `robot/expression`
+  * Payload:
+    ```json
+    { "expression": "happy", "duration": 6.0 }
+    ```
+* **Tahap 2 — Kirim Kata per Kata secara bertahap:**
+  * Topik: `robot/word`
+  * Payload contoh:
+    ```json
+    { "word": "Halo" }
+    { "word": "aku" }
+    { "word": "BCA" }
+    ```
+* **Tahap 3 — Sinyal Selesai Bicara (Opsional tapi disarankan):**
+  * Topik: `robot/voice_stage`
+  * Payload:
+    ```json
+    { "stage": "tts", "state": "end" }
+    ```
+* **Contoh Tembak:**
+  * Terminal dev-server: `node scripts/send.js '{"tipe":"word","word":"belum"}'`
+  * HTTP POST: `curl -X POST http://localhost:3000/api/word -H "Content-Type: application/json" -d '{"word":"belum"}'`
+  * MQTT: `mosquitto_pub -h 127.0.0.1 -t "robot/word" -m '{"word":"belum"}'`
+
+---
+
+#### 3. Mode Fallback (`visemeMode: "fallback"`)
+Mode darurat mandiri jika data fonetik/kata tidak tersedia. Mulut otomatis bergerak buka-tutup bergantian antara **`O`** dan **`REST`** secara berirama setiap 140ms selama durasi bicara, lalu menutup ke `DIAM` dan hold 5 detik sebelum idle.
+
+* **Topik MQTT:** `robot/expression`
+* **Format Payload (Cukup Emosi & Durasi):**
+```json
+{
+  "expression": "happy",
+  "duration": 8.0
+}
+```
+* **Atau via Status Bicara Manual:**
+```json
+{
+  "tipe": "bicara",
+  "status": "mulai",
+  "durasi_s": 8.0
+}
+```
+* **Contoh Tembak:**
+  * Terminal dev-server: `node scripts/send.js '{"tipe":"ekspresi","emosi":"happy","durasi_s":8.0}'`
+  * HTTP POST: `curl -X POST http://localhost:3000/api/message -H "Content-Type: application/json" -d '{"tipe":"ekspresi","emosi":"happy","durasi_s":8.0}'`
+  * MQTT: `mosquitto_pub -h 127.0.0.1 -t "robot/expression" -m '{"expression":"happy","duration":8.0}'`
 
 ---
 
@@ -575,6 +660,7 @@ Toggle: **F2** (atau klik "Ganti Mode" di panel).
 |---|---|
 | **F11** | Toggle layar penuh ↔ jendela |
 | **F2** | Toggle mode Dinamis ↔ Statis |
+| **F4** | Berganti mode viseme saat mode Dinamis (`Bawaan` ↔ `Streaming kata` ↔ `Fallback mulut`) |
 | **F3** | Toggle panel kontrol (hanya di mode statis) |
 | **Escape** / **Ctrl+Q** | Keluar aplikasi |
 | **1–9** | Set ekspresi (hanya di mode statis) |
