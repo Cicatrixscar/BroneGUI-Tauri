@@ -68,3 +68,8 @@ export function parseWordToVisemes(rawWord, config = {}) {
   if (steps.length && /[,.!?;:]["'”’)]*$/.test(rawWord.trim())) push('REST', settings.punctuationMs);
   return steps;
 }
+
+export function parseSentenceToVisemes(sentence, config = {}) {
+  if (typeof sentence !== 'string' || [...sentence].length > 4096 || /[\x00-\x1f\x7f-\x9f]/.test(sentence)) return [];
+  return sentence.trim().split(/\s+/).flatMap(word => parseWordToVisemes(word, config));
+}

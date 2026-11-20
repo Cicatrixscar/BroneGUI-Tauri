@@ -5,6 +5,8 @@ import { WordVisemeController } from './visemeController.js';
 
 const EMOTION_ALIASES = {
   netral: 'idle',
+  neutral: 'idle',
+  excited: 'happier',
   senang: 'happy',
   sangat_senang: 'happier',
   sedih: 'sad',
@@ -152,11 +154,15 @@ export function initConnector(state, modeManager) {
       }
     }
     if (!payload || typeof payload !== 'object') return;
+    // Accept the same combined JSON through the browser test bridge.
+    if ((!payload.tipe || payload.tipe === 'ekspresi') && Object.hasOwn(payload, 'sentence')) {
+      payload = { ...payload, tipe: 'sentence' };
+    }
 
     // Deduplikasi jika pesan identik tiba ganda dalam kurun < 30ms (mencegah trigger ganda)
     const payloadStr = JSON.stringify(payload);
     const now = performance.now();
-    if (payload.tipe !== 'word' && payloadStr === _lastMsgStr && (now - _lastMsgTime) < 30) {
+    if (!['word', 'sentence'].includes(payload.tipe) && payloadStr === _lastMsgStr && (now - _lastMsgTime) < 30) {
       return;
     }
     _lastMsgStr = payloadStr;
@@ -168,6 +174,11 @@ export function initConnector(state, modeManager) {
     }
 
     const { tipe } = payload;
+    if (tipe === 'sentence') {
+      if (visemeMode === 'streaming') streaming.sentence({ ...payload,
+        expression: EMOTION_ALIASES[payload.expression] || payload.expression });
+      return;
+    }
     if (tipe === 'word') {
       if (visemeMode === 'streaming') streaming.word(payload.word);
       return;
@@ -272,6 +283,7 @@ export function initConnector(state, modeManager) {
       'brone://viseme', 'brone/viseme', 'brone:viseme',
       'brone://bicara', 'brone/bicara', 'brone:bicara',
       'brone://word',
+      'brone://sentence',
       'brone-message'
     ];
     events.forEach((evtName) => {

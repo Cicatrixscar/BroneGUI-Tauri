@@ -1,11 +1,12 @@
 //! Modul client MQTT untuk menerima pesan dari sistem robot (Mosquitto broker).
 
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use rumqttc::{AsyncClient, MqttOptions, QoS};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
-use super::protocol::{pesan_dari_llm, validasi_pesan, Pesan};
+use super::ingress::{parse_pesan, DEFAULT_TOPICS};
+use super::protocol::validasi_pesan;
 
 #[derive(Debug, Clone)]
 pub struct MqttConfig {
@@ -21,27 +22,8 @@ impl Default for MqttConfig {
             host: "127.0.0.1".into(),
             port: 1883,
             client_id: "brone_gui_display".into(),
-            topics: vec![
-                // Kontrak asli `brone-talk`, diterjemahkan oleh adapter protocol.rs.
-                "robot/expression".into(),
-                "robot/voice_stage".into(),
-                "robot/word".into(),
-                // Kontrak GUI lama, tetap didukung untuk uji manual.
-                "brone/face/ekspresi".into(),
-                "brone/face/viseme".into(),
-                "brone/face/bicara".into(),
-            ],
+            topics: DEFAULT_TOPICS.iter().map(|topic| (*topic).to_owned()).collect(),
         }
-    }
-}
-
-fn parse_pesan(topic: &str, payload: &str) -> Result<Vec<Pesan>, String> {
-    if topic.starts_with("robot/") {
-        pesan_dari_llm(topic, payload)
-    } else {
-        serde_json::from_str::<Pesan>(payload)
-            .map(|p| vec![p])
-            .map_err(|e| format!("JSON tidak sesuai kontrak GUI: {e}"))
     }
 }
 
@@ -85,7 +67,7 @@ pub async fn start_mqtt_client(app_handle: AppHandle, config: MqttConfig) {
                     }
                 };
 
-                info!("[MQTT] Pesan masuk di '{}': {}", publish.topic, payload_str);
+                debug!("[MQTT] Pesan masuk di '{}': {}", publish.topic, payload_str);
 
                 match parse_pesan(&publish.topic, payload_str) {
                     Ok(pesan_list) => {
@@ -108,14 +90,14 @@ pub async fn start_mqtt_client(app_handle: AppHandle, config: MqttConfig) {
                             }
 
                             // Pancarkan event ke Frontend Tauri
-                            let event_name = match &pesan {
-                                Pesan::Ekspresi { .. } => "brone://ekspresi",
-                                Pesan::Viseme { .. } => "brone://viseme",
-                                Pesan::Bicara { .. } => "brone://bicara",
-                                Pesan::Word { .. } => "brone://word",
+                            let event_name = pesan.event_name();
+                            let val = match serde_json::to_value(&pesan) {
+                                Ok(val) => val,
+                                Err(e) => {
+                                    error!("[Tauri IPC] Serialisasi event '{}' gagal: {}", event_name, e);
+                                    continue;
+                                }
                             };
-
-                            let val = serde_json::to_value(&pesan).unwrap_or_default();
 
                             // Emit ke event spesifik sesuai tipe pesan ke Frontend
                             if let Err(e) = app_handle.emit(event_name, &val) {
