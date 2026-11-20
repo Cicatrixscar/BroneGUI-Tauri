@@ -46,6 +46,8 @@ pub struct VisemeItem {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "tipe")]
 pub enum Pesan {
+    #[serde(rename = "gaze")]
+    Gaze { x: f64 },
     #[serde(rename = "ekspresi")]
     Ekspresi {
         #[serde(default)]
@@ -77,6 +79,7 @@ pub enum Pesan {
 impl Pesan {
     pub fn event_name(&self) -> &'static str {
         match self {
+            Self::Gaze { .. } => "brone://gaze",
             Self::Ekspresi { .. } => "brone://ekspresi",
             Self::Viseme { .. } => "brone://viseme",
             Self::Bicara { .. } => "brone://bicara",
@@ -93,6 +96,12 @@ fn default_intensitas() -> f32 {
 /// Memvalidasi isi pesan sesuai aturan kontrak di docs/CONTRACT.md.
 pub fn validasi_pesan(p: &Pesan) -> Result<(), &'static str> {
     match p {
+        Pesan::Gaze { x } => {
+            if !x.is_finite() {
+                return Err("Gaze x harus berupa angka finite");
+            }
+            Ok(())
+        }
         Pesan::Ekspresi { emosi, intensitas, .. } => {
             if !(0.0..=1.0).contains(intensitas) {
                 return Err("Intensitas harus bernilai antara 0.0 dan 1.0");

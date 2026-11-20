@@ -154,6 +154,13 @@ export function initConnector(state, modeManager) {
       }
     }
     if (!payload || typeof payload !== 'object') return;
+    // Gaze tidak menyentuh deduplikasi LLM, timer emosi, atau lifecycle mulut.
+    if (payload.tipe === 'gaze') {
+      if (!modeManager || modeManager.handleIncomingMessage(payload)) {
+        state.setGaze(payload.x);
+      }
+      return;
+    }
     // Accept the same combined JSON through the browser test bridge.
     if ((!payload.tipe || payload.tipe === 'ekspresi') && Object.hasOwn(payload, 'sentence')) {
       payload = { ...payload, tipe: 'sentence' };
@@ -284,6 +291,7 @@ export function initConnector(state, modeManager) {
       'brone://bicara', 'brone/bicara', 'brone:bicara',
       'brone://word',
       'brone://sentence',
+      'brone://gaze',
       'brone-message'
     ];
     events.forEach((evtName) => {

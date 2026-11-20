@@ -6,6 +6,8 @@ export class FaceState {
     this.emosi = 'idle';
     this.intensitas = 1.0;
     this.viseme = 'DIAM';
+    this.gazeX = 0;
+    this.gazeResetVersion = 0;
     this.onStateChange = null;
     this.listeners = [];
 
@@ -47,6 +49,20 @@ export class FaceState {
 
   setBlinkFactor(factor) {
     this.params.eyeOpenness = factor;
+  }
+
+  setGaze(x) {
+    if (!Number.isFinite(x)) return;
+    const target = Math.max(-1, Math.min(1, x));
+    if (this.gazeX === target) return;
+    this.gazeX = target;
+    this.notifyChange();
+  }
+
+  resetGaze() {
+    this.gazeX = 0;
+    this.gazeResetVersion++;
+    this.notifyChange();
   }
 
   setEmotion(emosi, intensitas = 1.0) {

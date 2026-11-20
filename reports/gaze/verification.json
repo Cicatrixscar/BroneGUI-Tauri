@@ -1,0 +1,88 @@
+{
+  "center": {
+    "transform": "translate(0 0)",
+    "left": {
+      "baseX": 115,
+      "y": 154,
+      "screenX": 115
+    },
+    "right": {
+      "baseX": 556,
+      "y": 154,
+      "screenX": 556
+    },
+    "mouth": "assets/IDLE.svg"
+  },
+  "left": {
+    "transform": "translate(-20 0)",
+    "left": {
+      "baseX": 115,
+      "y": 154,
+      "screenX": 95
+    },
+    "right": {
+      "baseX": 556,
+      "y": 154,
+      "screenX": 536
+    },
+    "mouth": "assets/IDLE.svg"
+  },
+  "right": {
+    "transform": "translate(20 0)",
+    "left": {
+      "baseX": 115,
+      "y": 154,
+      "screenX": 135
+    },
+    "right": {
+      "baseX": 556,
+      "y": 154,
+      "screenX": 576
+    },
+    "mouth": "assets/IDLE.svg"
+  },
+  "clamped": [
+    {
+      "input": -5,
+      "transform": "translate(-20 0)"
+    },
+    {
+      "input": 8,
+      "transform": "translate(20 0)"
+    },
+    {
+      "input": -1.7976931348623157e+308,
+      "transform": "translate(-20 0)"
+    },
+    {
+      "input": 1.7976931348623157e+308,
+      "transform": "translate(20 0)"
+    },
+    {
+      "input": 0.5,
+      "transform": "translate(10 0)"
+    }
+  ],
+  "viewports": [
+    {
+      "width": 400,
+      "height": 240,
+      "leftScreenX": 67.5
+    },
+    {
+      "width": 1600,
+      "height": 960,
+      "leftScreenX": 270
+    }
+  ],
+  "verified": [
+    "terminal CLI -> HTTP -> SSE -> rendered SVG",
+    "finite out-of-range input clamped by GUI",
+    "invalid gaze rejected",
+    "observed automatic blink and expression transitions",
+    "cry/timeout suppression and resume",
+    "static reset",
+    "SVG scaling at 400x240 and 1600x960",
+    "streaming sentence and mouth isolation"
+  ]
+}

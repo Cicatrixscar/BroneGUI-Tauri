@@ -20,6 +20,12 @@ export class Renderer {
     this.mouthMorph = new MouthMorph(this.mouthLayer, this.mouthEl);
     this.shouldMorphMouth = () => true;
     this.eyeLWrap = this.svg.querySelector('#eye-l-wrap');
+    this.eyeLayer = this.svg.querySelector('#layer-eyes');
+    this.gazeCurrent = 0;
+    this.gazeFrom = 0;
+    this.gazeTarget = 0;
+    this.gazeStartedAt = 0;
+    this.gazeResetVersion = state?.gazeResetVersion ?? 0;
     this.eyeRWrap = this.svg.querySelector('#eye-r-wrap');
     this.eyeL = this.svg.querySelector('#eye-l');
     this.eyeR = this.svg.querySelector('#eye-r');
@@ -121,6 +127,7 @@ export class Renderer {
   render(timestamp = performance.now()) {
     // Sinkronisasi state wajah jika ada perubahan
     this.applyState();
+    this.updateGaze(timestamp);
     this.mouthMorph.update(timestamp);
 
     // Update controller kedip
@@ -177,6 +184,36 @@ export class Renderer {
     if (typeof requestAnimationFrame === 'function') {
       requestAnimationFrame(this.render);
     }
+  }
+
+  updateGaze(timestamp) {
+    if (!this.eyeLayer) return;
+    const resetVersion = this.state?.gazeResetVersion ?? 0;
+    const suspended = [this.currentEmotion, this.targetEmotion, this.state?.emosi]
+      .some(emosi => ['cry', 'menangis', 'timeout'].includes(emosi));
+    if (suspended || resetVersion !== this.gazeResetVersion) {
+      this.gazeCurrent = this.gazeFrom = this.gazeTarget = 0;
+      this.gazeStartedAt = timestamp;
+      this.gazeResetVersion = resetVersion;
+    }
+
+    const duration = this.config.gaze?.durationMs;
+    const durationMs = Number.isFinite(duration) && duration >= 0 ? duration : 150;
+    const progress = durationMs === 0 ? 1 : Math.min(1, Math.max(0,
+      (timestamp - this.gazeStartedAt) / durationMs));
+    const eased = 1 - (1 - progress) ** 2;
+    this.gazeCurrent = this.gazeFrom + (this.gazeTarget - this.gazeFrom) * eased;
+
+    const target = suspended ? 0 : this.state?.gazeX ?? 0;
+    if (target !== this.gazeTarget) {
+      this.gazeFrom = this.gazeCurrent;
+      this.gazeTarget = target;
+      this.gazeStartedAt = timestamp;
+    }
+    if (durationMs === 0) this.gazeCurrent = target;
+    const limit = this.config.gaze?.maxOffsetX;
+    const maxOffsetX = Number.isFinite(limit) && limit >= 0 ? limit : 20;
+    this.eyeLayer.setAttribute('transform', `translate(${this.gazeCurrent * maxOffsetX} 0)`);
   }
 
   triggerBlinkAnimation() {

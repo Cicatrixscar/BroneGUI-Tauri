@@ -5,7 +5,7 @@ use rumqttc::{AsyncClient, MqttOptions, QoS};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
-use super::ingress::{parse_pesan, DEFAULT_TOPICS};
+use super::ingress::{parse_pesan, DEFAULT_TOPICS, TOPIC_CV_GAZE};
 use super::protocol::validasi_pesan;
 
 #[derive(Debug, Clone)]
@@ -56,6 +56,10 @@ pub async fn start_mqtt_client(app_handle: AppHandle, config: MqttConfig) {
                 }
             }
             Ok(rumqttc::Event::Incoming(rumqttc::Packet::Publish(publish))) => {
+                if publish.topic == TOPIC_CV_GAZE && publish.retain {
+                    debug!("[MQTT] Retained gaze lama diabaikan.");
+                    continue;
+                }
                 let payload_str = match std::str::from_utf8(&publish.payload) {
                     Ok(s) => s,
                     Err(e) => {

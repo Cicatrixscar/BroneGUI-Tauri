@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { parseGaze } from '../src/js/gaze.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,6 +99,13 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         let payload = JSON.parse(body || '{}');
+        if (payload?.type === 'gaze' || payload?.tipe === 'gaze') {
+          if (payload.type === 'gaze') payload = parseGaze(payload);
+          else {
+            const { tipe, ...fields } = payload;
+            payload = parseGaze({ type: tipe, ...fields });
+          }
+        }
         if (Object.hasOwn(payload, 'sentence') && (!payload.tipe || payload.tipe === 'ekspresi')) {
           payload.tipe = 'sentence';
         }
@@ -161,7 +169,7 @@ const server = http.createServer((req, res) => {
 // 4. Jembatan otomatis Mosquitto MQTT -> Browser SSE
 function startMosquittoSubBridge() {
   try {
-    const sub = spawn('mosquitto_sub', ['-h', MQTT_HOST, '-p', MQTT_PORT, '-t', 'brone/face/#', '-t', 'robot/sentence', '-t', 'robot/word', '-t', 'robot/expression', '-t', 'robot/voice_stage', '-F', '%t\t%p'], {
+    const sub = spawn('mosquitto_sub', ['-h', MQTT_HOST, '-p', MQTT_PORT, '-t', 'brone/face/#', '-t', 'robot/gaze', '-t', 'robot/sentence', '-t', 'robot/word', '-t', 'robot/expression', '-t', 'robot/voice_stage', '-F', '%t\t%r\t%p'], {
       stdio: ['ignore', 'pipe', 'ignore']
     });
 
@@ -174,13 +182,16 @@ function startMosquittoSubBridge() {
         const trimmed = line.trim();
         if (!trimmed) continue;
         const parts = trimmed.split('\t');
-        if (parts.length >= 2) {
+        if (parts.length >= 3) {
           const topic = parts[0];
-          const payloadStr = parts.slice(1).join('\t');
+          if (topic === 'robot/gaze' && parts[1] === '1') continue;
+          const payloadStr = parts.slice(2).join('\t');
           try {
             const payload = JSON.parse(payloadStr);
             console.log(`[MQTT Bridge] Menerima pesan MQTT dari '${topic}':`, payload);
-            if (topic === 'robot/sentence') {
+            if (topic === 'robot/gaze') {
+              broadcastToClients(parseGaze(payload));
+            } else if (topic === 'robot/sentence') {
               broadcastToClients({ tipe: 'sentence', expression: payload.expression,
                 duration: payload.duration, sentence: payload.sentence });
             } else if (topic === 'robot/word') {
