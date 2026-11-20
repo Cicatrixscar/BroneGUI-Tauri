@@ -4,10 +4,13 @@ STATUS: MQTT. Transport diputuskan lewat audit integrasi 11 November 2026. Kontr
 
 ## Ingress MQTT dari `brone-talk` (`robot/#`)
 
-Broker Mosquitto berjalan di Jetson (`0.0.0.0:1883`). LLM di NUC mengirim format mentah berikut. Backend Rust (`src-tauri/src/connector/protocol.rs`) menerjemahkannya ke kontrak internal GUI sebelum validasi.
+Broker Mosquitto berjalan di Jetson (`0.0.0.0:1883`). LLM di NUC mengirim format mentah berikut. Backend Rust (`src-tauri/src/connector/ingress.rs`) memilih adapter berdasarkan topik dan menerjemahkannya ke kontrak internal GUI. Model dan aturan validasi internal tetap berada di `src-tauri/src/connector/protocol.rs`; transport MQTT berada di `src-tauri/src/connector/mqtt.rs`.
+
+Paket streaming baru menggabungkan `expression`, `duration`, dan `sentence` dalam satu JSON di `robot/expression`. Adapter menghasilkan satu event `brone://sentence` agar ekspresi ikut antre bersama kalimat. Format lama tanpa `sentence` tetap menghasilkan event ekspresi, mulai bicara, lalu viseme sesuai payload; validasi format lama tetap per pesan. Jalur topik manual tetap membaca jenis pesan dari field `tipe` payload. Daftar subscription backend bersumber dari `ingress::DEFAULT_TOPICS`; `lib.rs` memakai daftar tersebut dan menimpa host/port dari environment. Dukungan gaze belum ditambahkan.
 
 | Topik | Payload LLM | Terjemahan GUI |
 |---|---|---|
+| `robot/expression` | `{"expression":"happy","duration":3.5,"sentence":"Halo, apa kabar?"}` | Satu event kalimat + face state, diputar saat giliran kalimat dimulai |
 | `robot/expression` | `{"expression":"idle"}` | `emosi=idle` |
 | `robot/expression` | `{"expression":"happy"}` / `sad` | `emosi=happy` / `sad` |
 | `robot/expression` | `{"expression":"neutral"}` | `emosi=idle` |
@@ -25,7 +28,7 @@ Catatan: `brone-talk` belum mengirim jadwal viseme. Default: `bicara=mulai` tida
 
 Topik lama `brone/face/ekspresi`, `brone/face/viseme`, dan `brone/face/bicara` tetap diterima untuk uji manual dengan kontrak internal di bawah.
 
-Sumber pesan adalah tim LLM. Mode bawaan menerima jadwal timestamp viseme. Mode streaming opsional menerima kata dan menghasilkan viseme lokal; lihat aturan di bawah.
+Sumber pesan adalah tim LLM. Mode bawaan menerima jadwal timestamp viseme. Mode streaming opsional menerima kalimat dan menghasilkan viseme lokal; lihat aturan di bawah.
 
 ## Pesan ekspresi
 
@@ -102,20 +105,46 @@ Efek (air mata, tanda seru, tanda tanya) mengikuti ekspresi. Tidak ada field efe
 - Viseme yang `t`-nya sudah lewat saat diterima dilewati, tidak dimainkan mundur.
 - Jadwal kosong atau habis: mulut kembali ke `DIAM`.
 
-## Streaming kata opsional
+## Streaming kalimat opsional: kontrak untuk tim LLM/TTS
 
-Aktifkan `bicara.visemeMode: "streaming"` pada `src/config/config.json`, atau tekan **F4 saat mode dinamis** untuk berputar Bawaan -> Streaming kata -> Fallback mulut. F2 tetap mengganti dinamis/statis; F3 tetap mengatur panel statis. Pilihan lain: `bawaan` (default, streaming mati) dan `fallback` (vokal sintetis). Pilihan panel berlaku sampai aplikasi ditutup. Pergantian pilihan membatalkan seluruh timer mulut dan hold sebelumnya.
+Aktifkan `bicara.visemeMode: "streaming"` pada `src/config/config.json`, atau tekan **F4 saat mode dinamis** untuk berputar Bawaan -> Streaming kalimat -> Fallback mulut. F2 tetap mengganti dinamis/statis; F3 tetap mengatur panel statis. Pilihan lain: `bawaan` (default, streaming mati) dan `fallback` (vokal sintetis). Pilihan panel berlaku sampai aplikasi ditutup. Pergantian pilihan membatalkan seluruh timer mulut dan hold sebelumnya.
 
 | Topik MQTT | Payload | Event internal |
 |---|---|---|
-| `robot/expression` | `{"expression":"happy","duration":6.0}` | Ekspresi + mulai bicara; durasi menjadi batas master streaming |
-| `robot/word` | `{"word":"belum"}` | `brone://word` dengan `{"tipe":"word","word":"belum"}` |
-| `robot/voice_stage` | `{"stage":"tts","state":"end"}` | Selesai bicara |
+| `robot/expression` (utama) | `{"expression":"happy","duration":3.5,"sentence":"Halo, apa kabar?"}` | `brone://sentence` dengan `tipe: "sentence"` dan ketiga field yang sama; alias ekspresi dinormalisasi |
+| `robot/sentence` (alternatif) | JSON gabungan yang sama | Event kalimat yang sama; gunakan salah satu topik saja |
+| `robot/voice_stage` (opsional) | `{"stage":"tts","state":"end"}` | Hentikan sesi dan batalkan antrean tersisa |
 
-`word` wajib string tidak kosong, maksimal 256 karakter, tanpa karakter kontrol. Token tidak didukung (misalnya angka) diabaikan parser. Ejaan per huruf hanya untuk 2-5 huruf kapital penuh. Tidak perlu mengirim batas suku kata; tanda hubung eksplisit tetap diterima.
+Kirim satu JSON per kalimat, dengan ketiga field wajib berikut. Tidak perlu field `tipe`, `face_state`, `word`, atau jadwal viseme pada payload MQTT ini.
 
-Kata baru langsung memotong kata lama. Setelah kata selesai, mulut REST sambil menunggu. Batas durasi atau pesan akhir mengembalikan DIAM, menahan ekspresi 5000 ms, lalu idle. Tanpa keduanya, GUI memakai timeout keheningan dan watchdog lokal. Pesan akhir berulang tidak memulai ulang hold. Kata terlambat setelah penutupan keras diabaikan sampai sesi baru dimulai.
+```json
+{
+  "expression": "happy",
+  "duration": 3.5,
+  "sentence": "Halo, apa kabar?"
+}
+```
 
-Untuk kompatibilitas, adapter tetap mengirim `durasi_ms` ekspresi dan `durasi_s` mulai bicara. Streaming memakai durasi itu sebagai batas audio, bukan timer reset ekspresi. Sumber yang tidak dipilih tidak memengaruhi mulut/hold streaming. Detail parameter dan kompromi heuristik ada di `docs/rekap-ide-baru-viseme-streaming.md` bagian 5.
+| Field | Tipe dan aturan |
+|---|---|
+| `expression` | String ekspresi wajah: `idle`, `happy`, `happier`, `happier_transisi`, `sad`, `cry`, `shock`, `confused`, atau `timeout`. Alias lama tetap diterima, misalnya `neutral` menjadi `idle`, `excited` menjadi `happier`, `thinking` menjadi `confused`. `speaking` bukan ekspresi untuk paket kalimat. |
+| `duration` | Number, durasi audio TTS **kalimat ini** dalam detik, harus `> 0` dan `<= 3600`. Contoh 3500 ms dikirim sebagai `3.5`, bukan `3500` atau `"3.5"`. Ambil durasi dari hasil TTS, bukan perkiraan LLM. |
+| `sentence` | String teks kalimat yang sama dengan audio TTS, tidak kosong, maksimal 4096 karakter, tanpa karakter kontrol seperti newline/tab. |
 
-Uji browser: POST `/api/word` dengan `{"word":"belum"}`, atau POST `/api/message` memakai kontrak internal. Bridge MQTT development juga menerima tiga topik `robot/` di atas.
+GUI mengantrekan seluruh paket. Ekspresi berubah saat giliran kalimat mulai, bukan saat paket yang masih mengantre diterima. GUI memecah teks menjadi kata dan membuat viseme lokal, termasuk jeda tanda baca, lalu menyesuaikan total durasinya ke `duration`. Kalimat berikutnya mulai setelah durasi kalimat sebelumnya selesai. Setelah paket terakhir selesai, mulut DIAM, ekspresi ditahan 5000 ms, kemudian idle. Paket gabungan baru memulai sesi secara otomatis, termasuk setelah kembali idle; tidak wajib mengirim pesan mulai/selesai terpisah.
+
+Publish saat audio kalimat mulai diputar. Jika mengirim beberapa paket lebih awal, pemutar audio harus memakai urutan dan durasi yang sama tanpa jeda tambahan. Pesan gabungan ini tidak membawa timestamp absolut atau audio; ketepatan fonem masih berbasis heuristik ejaan. Angka/simbol belum diucapkan oleh parser; sebaiknya gunakan teks yang sudah dinormalisasi untuk TTS. Ejaan per huruf berlaku untuk 2-5 huruf kapital penuh. Kata individual dibatasi 256 karakter. Teks tanpa viseme yang didukung tetap menampilkan ekspresi dan mulut REST selama durasinya.
+
+Pengaturan pengirim: broker MQTT Jetson pada port TCP `1883`, host memakai alamat IP/hostname Jetson yang dapat diakses NUC. Gunakan payload JSON UTF-8, `retain=false`, dan QoS publish `0`. Paket adalah perintah putar yang tidak memiliki ID deduplikasi; jangan publish paket yang sama ke kedua topik atau mengirim ulang paket yang sudah dimainkan. QoS 0 berarti tidak ada jaminan pengiriman. Subscriber backend tetap meminta QoS 1; QoS efektif mengikuti nilai lebih rendah dari publish/subscription.
+
+Contoh publish (ganti `IP_JETSON`):
+
+```sh
+mosquitto_pub -h IP_JETSON -p 1883 -q 0 -t robot/expression -m '{"expression":"happy","duration":3.5,"sentence":"Halo, apa kabar?"}'
+```
+
+`robot/voice_stage` tetap tersedia untuk status sistem. Jika digunakan, kirim `tts/start` sebelum paket pertama dan `tts/end` hanya setelah seluruh audio selesai; `tts/end` membatalkan sisa antrean. Jangan kirim ekspresi terpisah untuk tiap paket kalimat karena jalur ekspresi lama menginterupsi antrean yang sedang berjalan.
+
+Kompatibilitas: format ekspresi lama tanpa `sentence`, `robot/word`, `brone://word`, dan `/api/word` tetap tersedia. Format antara `{"sentence":"..."}` tanpa `expression` dan `duration` diganti oleh kontrak tiga field di atas. Paket streaming gabungan hanya dimainkan saat mode `streaming` dipilih; mode bawaan/fallback dan mode statis mengabaikannya.
+
+Uji browser: POST `/api/sentence`, `/api/ekspresi`, atau `/api/message` dengan JSON gabungan di atas. Bridge menambahkan `tipe: "sentence"` secara otomatis. Untuk pengiriman internal Tauri/manual, gunakan `{"tipe":"sentence","expression":"happy","duration":3.5,"sentence":"Halo, apa kabar?"}`. Bridge MQTT development menerima paket gabungan melalui kedua topik yang didukung.

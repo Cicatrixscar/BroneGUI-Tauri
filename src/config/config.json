@@ -200,6 +200,7 @@
       "robot/expression",
       "robot/voice_stage",
       "robot/word",
+      "robot/sentence",
       "brone/face/ekspresi",
       "brone/face/viseme",
       "brone/face/bicara"

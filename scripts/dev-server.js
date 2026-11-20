@@ -92,12 +92,15 @@ const server = http.createServer((req, res) => {
   }
 
   // 2. Endpoint API Penerima Pesan Terminal: POST /api/message atau POST /api/ekspresi
-  if (req.method === 'POST' && (pathname === '/api/message' || pathname === '/api/ekspresi' || pathname === '/api/viseme' || pathname === '/api/bicara' || pathname === '/api/word')) {
+  if (req.method === 'POST' && (pathname === '/api/message' || pathname === '/api/ekspresi' || pathname === '/api/viseme' || pathname === '/api/bicara' || pathname === '/api/word' || pathname === '/api/sentence')) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
         let payload = JSON.parse(body || '{}');
+        if (Object.hasOwn(payload, 'sentence') && (!payload.tipe || payload.tipe === 'ekspresi')) {
+          payload.tipe = 'sentence';
+        }
 
         // Normalisasi payload jika endpoint spesifik dipanggil tanpa field 'tipe'
         if (pathname === '/api/ekspresi' && !payload.tipe) {
@@ -109,6 +112,7 @@ const server = http.createServer((req, res) => {
         }
 
         if (pathname === '/api/word' && !payload.tipe) payload.tipe = 'word';
+        if (pathname === '/api/sentence' && !payload.tipe) payload.tipe = 'sentence';
         const deliveredCount = broadcastToClients(payload);
         console.log(`[Bridge] Pesan diterima dari terminal:`, payload, `(terkirim ke ${deliveredCount} browser)`);
 
@@ -157,7 +161,7 @@ const server = http.createServer((req, res) => {
 // 4. Jembatan otomatis Mosquitto MQTT -> Browser SSE
 function startMosquittoSubBridge() {
   try {
-    const sub = spawn('mosquitto_sub', ['-h', MQTT_HOST, '-p', MQTT_PORT, '-t', 'brone/face/#', '-t', 'robot/word', '-t', 'robot/expression', '-t', 'robot/voice_stage', '-F', '%t\t%p'], {
+    const sub = spawn('mosquitto_sub', ['-h', MQTT_HOST, '-p', MQTT_PORT, '-t', 'brone/face/#', '-t', 'robot/sentence', '-t', 'robot/word', '-t', 'robot/expression', '-t', 'robot/voice_stage', '-F', '%t\t%p'], {
       stdio: ['ignore', 'pipe', 'ignore']
     });
 
@@ -176,9 +180,17 @@ function startMosquittoSubBridge() {
           try {
             const payload = JSON.parse(payloadStr);
             console.log(`[MQTT Bridge] Menerima pesan MQTT dari '${topic}':`, payload);
-            if (topic === 'robot/word') {
+            if (topic === 'robot/sentence') {
+              broadcastToClients({ tipe: 'sentence', expression: payload.expression,
+                duration: payload.duration, sentence: payload.sentence });
+            } else if (topic === 'robot/word') {
               broadcastToClients({ tipe: 'word', word: payload.word });
             } else if (topic === 'robot/expression') {
+              if (Object.hasOwn(payload, 'sentence')) {
+                broadcastToClients({ tipe: 'sentence', expression: payload.expression,
+                  duration: payload.duration, sentence: payload.sentence });
+                continue;
+              }
               const aliases = { neutral: 'idle', excited: 'happier', thinking: 'confused' };
               const emotion = payload.expression ?? payload.emosi ?? payload.ekspresi;
               const duration = payload.duration ?? payload.durasi_s;

@@ -96,7 +96,7 @@ export class ControlPanel {
         <label for="viseme-mode">Sumber gerakan mulut saat mode dinamis (${this.keymap.toggleVisemeMode ?? 'F4'})</label>
         <select id="viseme-mode">
           <option value="bawaan">Bawaan (jadwal viseme)</option>
-          <option value="streaming">Streaming kata</option>
+          <option value="streaming">Streaming kalimat</option>
           <option value="fallback">Fallback mulut</option>
         </select>
       </div>
@@ -230,7 +230,7 @@ export class ControlPanel {
   }
 
   showVisemeMode(mode) {
-    const labels = { bawaan: 'Bawaan (jadwal)', streaming: 'Streaming kata', fallback: 'Fallback mulut' };
+    const labels = { bawaan: 'Bawaan (jadwal)', streaming: 'Streaming kalimat', fallback: 'Fallback mulut' };
     this.visemeNotice.textContent = `${this.keymap.toggleVisemeMode ?? 'F4'} | Viseme: ${labels[mode] ?? mode}`;
     this.visemeNotice.hidden = false;
     clearTimeout(this.visemeNoticeTimer);

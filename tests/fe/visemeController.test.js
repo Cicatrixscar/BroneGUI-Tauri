@@ -14,6 +14,87 @@ function setup(t, bicara = {}) {
   return { state, controller, mode, send: payload => window.sendBroneMessage(payload), tick: ms => t.mock.timers.tick(ms) };
 }
 
+test('combined packets queue face state and scale visemes to each audio duration', t => {
+  const { state, send, tick } = setup(t);
+  send({ expression: 'happy', duration: 0.6, sentence: 'a i' });
+  assert.equal(state.emosi, 'happy');
+  assert.equal(state.viseme, 'A');
+  tick(100);
+  send({ expression: 'sad', duration: 0.3, sentence: 'u e' });
+  assert.equal(state.emosi, 'happy');
+  assert.equal(state.viseme, 'A');
+  tick(200);
+  assert.equal(state.viseme, 'I');
+  tick(300);
+  assert.equal(state.emosi, 'sad');
+  assert.equal(state.viseme, 'U');
+  tick(150);
+  assert.equal(state.viseme, 'E');
+  tick(150);
+  assert.equal(state.viseme, 'DIAM');
+  assert.equal(state.emosi, 'sad');
+  tick(4999);
+  assert.equal(state.emosi, 'sad');
+  tick(1);
+  assert.equal(state.emosi, 'idle');
+  // A self-contained packet starts a new session after the idle hold.
+  send({ expression: 'neutral', duration: 0.1, sentence: 'o' });
+  assert.equal(state.emosi, 'idle');
+  assert.equal(state.viseme, 'O');
+});
+
+test('long combined sentences outlast watchdog and explicit end cancels their queue', t => {
+  const { state, send, tick } = setup(t, { streaming: { watchdogMs: 200, silenceTimeoutMs: 100 } });
+  send({ tipe: 'sentence', expression: 'happy', duration: 0.75, sentence: 'a i u e o' });
+  tick(600);
+  assert.equal(state.viseme, 'O');
+  tick(150);
+  assert.equal(state.viseme, 'DIAM');
+  send({ expression: 'sad', duration: 0.5, sentence: 'a i' });
+  send({ expression: 'cry', duration: 0.5, sentence: 'o a' });
+  tick(100);
+  send({ tipe: 'bicara', status: 'selesai' });
+  tick(1000);
+  assert.equal(state.viseme, 'DIAM');
+  assert.equal(state.emosi, 'sad');
+});
+
+test('invalid combined packets cannot change face state or interrupt queued audio', t => {
+  const { state, send, tick } = setup(t);
+  send({ expression: 'happy', duration: 0.3, sentence: 'a i' });
+  for (const invalid of [
+    { expression: 'unknown' }, { expression: 'speaking' }, { duration: 0 },
+    { duration: -1 }, { duration: '1' }, { duration: Infinity }, { duration: 3601 },
+    { sentence: '' }, { sentence: 'a\nb' }, { sentence: null },
+  ]) send({ expression: 'sad', duration: 1, sentence: 'u', ...invalid });
+  send({ tipe: 'sentence', sentence: 'u' });
+  assert.equal(state.emosi, 'happy');
+  tick(150);
+  assert.equal(state.viseme, 'I');
+  tick(150);
+  assert.equal(state.viseme, 'DIAM');
+  tick(5000);
+  assert.equal(state.emosi, 'idle');
+});
+
+test('unsupported sentence text keeps the face state for its duration and mode switches cancel it', t => {
+  const { state, controller, send, tick } = setup(t);
+  send({ expression: 'excited', duration: 0.2, sentence: '123' });
+  assert.equal(state.emosi, 'happier');
+  assert.equal(state.viseme, 'REST');
+  send({ expression: 'sad', duration: 0.1, sentence: 'o' });
+  tick(200);
+  assert.equal(state.emosi, 'sad');
+  assert.equal(state.viseme, 'O');
+  controller.setMode('bawaan');
+  tick(6000);
+  assert.equal(state.viseme, 'DIAM');
+  assert.equal(state.emosi, 'sad');
+  send({ expression: 'happy', duration: 1, sentence: 'a' });
+  assert.equal(state.emosi, 'sad');
+  assert.equal(state.viseme, 'DIAM');
+});
+
 test('streaming preempts word timers, rests in gaps, and obeys the original master deadline', t => {
   const { state, send, tick } = setup(t);
   send({ tipe: 'ekspresi', emosi: 'happy', durasi_ms: 1000 });

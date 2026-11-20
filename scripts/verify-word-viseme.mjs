@@ -82,24 +82,22 @@ try {
     f4({altKey:true});
     if (select.value !== 'streaming') throw new Error('Repeated/modified F4 changed source');
     const notice = document.getElementById('viseme-mode-notice');
-    if (notice.hidden || !notice.textContent.includes('Streaming kata')) throw new Error('Missing active source notice');
+    if (notice.hidden || !notice.textContent.includes('Streaming kalimat')) throw new Error('Missing active source notice');
     const mouth = () => document.getElementById('mouth').getAttribute('href');
     // Observe the actual app while eye emotion transition is still running.
     const history = [];
     const observer = new MutationObserver(() => history.push(mouth()));
     observer.observe(document.getElementById('mouth'), {attributes:true, attributeFilter:['href']});
-    window.sendBroneMessage({tipe:'ekspresi', emosi:'happy', durasi_ms:1200});
-    window.sendBroneMessage({tipe:'word', word:'belum'});
+    window.sendBroneMessage({expression:'happy', duration:0.4, sentence:'belum'});
     await wait(160);
-    const response = await fetch('/api/word', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({word:'BCA'})
+    const response = await fetch('/api/sentence', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({expression:'happy', duration:0.5, sentence:'a BCA'})
     });
     const delivered = await response.json();
-    if (!response.ok || delivered.deliveredTo < 1) throw new Error('Word HTTP/SSE bridge failed');
-    await wait(600);
-    const gap = mouth();
-    await wait(500);
+    if (!response.ok || delivered.deliveredTo < 1) throw new Error('Sentence HTTP/SSE bridge failed');
+    await wait(800);
     const end = mouth();
+    await wait(300);
     observer.disconnect();
     key();
     const panelVisible = !document.getElementById('control-panel').classList.contains('control-panel-hidden');
@@ -116,7 +114,7 @@ try {
     test.start(config.visemes.REST, box('REST'), true, 0, 25);
     test.update(25);
     const closureCompleted = test.transition === null;
-    return {defaults, selected:select.value, cycle, panelVisible, history, gap, end, closureCompleted};
+    return {defaults, selected:select.value, cycle, panelVisible, history, end, closureCompleted};
   })()`);
   assert.equal(result.defaults, 'bawaan');
   assert.equal(result.selected, 'streaming');
@@ -124,7 +122,6 @@ try {
   assert.equal(result.panelVisible, true);
   assert.ok(result.history.includes('assets/viseme/E.svg'), JSON.stringify(result));
   assert.ok(result.history.includes('assets/viseme/A.svg'), JSON.stringify(result));
-  assert.equal(result.gap, 'assets/viseme/REST.svg');
   assert.equal(result.end, 'assets/HAPPIER.svg');
   assert.equal(result.closureCompleted, true);
   await send('Emulation.setDeviceMetricsOverride', {width:1000,height:650,deviceScaleFactor:1,mobile:false}, sessionId);
@@ -136,7 +133,7 @@ try {
   const dynamicShot = await send('Page.captureScreenshot', {format:'png'}, sessionId);
   await writeFile('reports/word-viseme/f4-dynamic.png', Buffer.from(dynamicShot.data,'base64'));
   await writeFile('reports/word-viseme/verification.json', JSON.stringify(result,null,2));
-  console.log('PASS: F4 dynamic source cycle/notice, selector sync, real streaming during eye transition, preemption, REST gap, master deadline, 25ms PBM closure.');
+  console.log('PASS: F4 dynamic source cycle/notice, selector sync, combined HTTP/SSE streaming during eye transition, queued sentences with per-sentence audio durations, 25ms PBM closure.');
 } finally {
   socket?.close();
   browser.kill();

@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseWordToVisemes } from '../../src/js/wordViseme.js';
+import { parseWordToVisemes, parseSentenceToVisemes } from '../../src/js/wordViseme.js';
+
+test('sentences preserve word order and punctuation, and reject invalid text', () => {
+  assert.deepEqual(parseSentenceToVisemes('Halo, apa kabar?'),
+    ['Halo,', 'apa', 'kabar?'].flatMap(word => parseWordToVisemes(word)));
+  assert.deepEqual(parseSentenceToVisemes('a 123 i'), [...parseWordToVisemes('a'), ...parseWordToVisemes('i')]);
+  for (const value of [null, 42, '', '   ', '123', 'a'.repeat(4097), 'a\ni']) {
+    assert.deepEqual(parseSentenceToVisemes(value), []);
+  }
+});
 
 test('PBM shares each syllable budget, including onset plus coda', () => {
   assert.deepEqual(parseWordToVisemes('belum'), [
