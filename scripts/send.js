@@ -7,6 +7,7 @@
  *   node scripts/send.js timeout
  *   node scripts/send.js ekspresi happy 2000
  *   node scripts/send.js viseme A
+ *   node scripts/send.js gaze -1
  *   node scripts/send.js '{"tipe":"ekspresi","emosi":"cry","durasi_ms":3000}'
  */
 
@@ -18,6 +19,7 @@ if (args.length === 0) {
   console.log(`Penggunaan CLI:`);
   console.log(`  node scripts/send.js <emosi> [durasi_ms]`);
   console.log(`  node scripts/send.js viseme <kode_viseme>`);
+  console.log(`  node scripts/send.js gaze <angka x; GUI membatasi ke -1 sampai 1>`);
   console.log(`  node scripts/send.js '<json_payload>'`);
   console.log(`\nContoh:`);
   console.log(`  node scripts/send.js sad 4000`);
@@ -36,6 +38,13 @@ if (args[0].startsWith('{')) {
     console.error('Format JSON tidak valid:', e.message);
     process.exit(1);
   }
+} else if (args[0] === 'gaze') {
+  const x = Number(args[1]);
+  if (args.length !== 2 || !args[1].trim() || !Number.isFinite(x)) {
+    console.error('Gunakan: node scripts/send.js gaze <angka finite>');
+    process.exit(1);
+  }
+  payload = { type: 'gaze', x };
 } else if (args[0] === 'ekspresi' || args[0] === 'emotion') {
   payload = {
     tipe: 'ekspresi',
@@ -74,11 +83,12 @@ fetch(URL, {
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     }
     const data = await res.json();
-    console.log(`✅ Berhasil terkirim ke ${data.deliveredTo} browser:`, payload);
+    console.log(`Berhasil terkirim ke ${data.deliveredTo} browser:`, payload);
   })
   .catch(err => {
-    console.error(`❌ Gagal terhubung ke Dev Server (${URL}).`);
+    console.error(`Gagal mengirim ke Dev Server (${URL}).`);
     console.error(`   Pastikan server sudah jalan dengan perintah: node scripts/dev-server.js`);
     console.error(`   Detail error:`, err.message);
+    process.exitCode = 1;
   });
 

@@ -6,7 +6,27 @@ STATUS: MQTT. Transport diputuskan lewat audit integrasi 11 November 2026. Kontr
 
 Broker Mosquitto berjalan di Jetson (`0.0.0.0:1883`). LLM di NUC mengirim format mentah berikut. Backend Rust (`src-tauri/src/connector/ingress.rs`) memilih adapter berdasarkan topik dan menerjemahkannya ke kontrak internal GUI. Model dan aturan validasi internal tetap berada di `src-tauri/src/connector/protocol.rs`; transport MQTT berada di `src-tauri/src/connector/mqtt.rs`.
 
-Paket streaming baru menggabungkan `expression`, `duration`, dan `sentence` dalam satu JSON di `robot/expression`. Adapter menghasilkan satu event `brone://sentence` agar ekspresi ikut antre bersama kalimat. Format lama tanpa `sentence` tetap menghasilkan event ekspresi, mulai bicara, lalu viseme sesuai payload; validasi format lama tetap per pesan. Jalur topik manual tetap membaca jenis pesan dari field `tipe` payload. Daftar subscription backend bersumber dari `ingress::DEFAULT_TOPICS`; `lib.rs` memakai daftar tersebut dan menimpa host/port dari environment. Dukungan gaze belum ditambahkan.
+Paket streaming baru menggabungkan `expression`, `duration`, dan `sentence` dalam satu JSON di `robot/expression`. Adapter menghasilkan satu event `brone://sentence` agar ekspresi ikut antre bersama kalimat. Format lama tanpa `sentence` tetap menghasilkan event ekspresi, mulai bicara, lalu viseme sesuai payload; validasi format lama tetap per pesan. Jalur topik manual tetap membaca jenis pesan dari field `tipe` payload. Daftar subscription backend bersumber dari `ingress::DEFAULT_TOPICS`; `lib.rs` memakai daftar tersebut dan menimpa host/port dari environment. Gaze CV memiliki adapter terpisah seperti dijelaskan berikut.
+
+## Gaze horizontal dari CV
+
+CV publish ke `robot/gaze` tanpa retain:
+
+```json
+{"type":"gaze","x":0.5}
+```
+
+Payload wajib objek dengan tepat dua field: `type` harus string `gaze`, dan `x` menerima angka finite berapa pun. Backend meneruskan nilai asli; GUI membatasi target dengan `clamp(x, -1, 1)`. Misalnya `-5` menjadi target `-1`, `8` menjadi `1`, dan `0.5` tetap `0.5`. Field tambahan, nilai non-finite, string angka, boolean, null, field hilang, dan JSON rusak ditolak. Pesan gaze dengan retained flag diabaikan saat berlangganan ulang; aturan retained pesan LLM/TTS tetap seperti sebelumnya.
+
+Adapter menerjemahkannya menjadi event Tauri `brone://gaze` dengan payload internal `{"tipe":"gaze","x":0.5}`. `x` adalah target absolut: `-1` kiri layar, `0` posisi dasar ekspresi, `1` kanan layar, dari sudut pandang orang yang melihat layar. Kedua gambar mata bergeser bersama; posisi Y dan jarak antar mata tetap. Pengirim kamera memetakan arah kamera ke arah layar.
+
+GUI memakai `gaze.maxOffsetX: 20` satuan SVG pada viewBox dasar 800 x 480 dan `gaze.durationMs: 150` ms dengan easing ease-out kuadratik. Ini nilai awal kalibrasi, dapat diubah melalui config. Pesan terbaru mengganti target dari posisi gerakan saat ini; pesan dengan target sama tidak memulai ulang gerak. Target bertahan sampai pesan baru, termasuk setelah selesai bicara atau perubahan ekspresi. Reset eksplisit dengan `x:0`.
+
+Gaze diproses terpisah dari timer emosi, antrean kalimat, serta viseme pada semua mode mulut. Selama ekspresi `cry`/`timeout` dan transisi yang melibatkannya, offset tampilan ditahan di tengah tanpa membuang target; target diterapkan kembali setelah keluar. Pergantian mode statis/dinamis mereset gaze langsung ke tengah. Pesan selama mode statis dibuang tanpa antrean.
+
+Uji browser: POST `/api/message` dengan payload eksternal yang sama. Bridge mengembalikan HTTP 400 untuk gaze invalid dan tidak menyiarkannya. CLI: `node scripts/send.js gaze -1`, `node scripts/send.js gaze 0`, `node scripts/send.js gaze 1`. Jalur HTTP ini menguji bridge development dan frontend; jalur MQTT/Tauri tetap memerlukan uji pada runtime desktop. Detail dan perintah terminal ada di [rancangan-gaze-horizontal.md](rancangan-gaze-horizontal.md).
+
+## Pemetaan pesan LLM/TTS
 
 | Topik | Payload LLM | Terjemahan GUI |
 |---|---|---|

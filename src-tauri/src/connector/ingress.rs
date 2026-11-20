@@ -9,6 +9,7 @@ pub const TOPIC_LLM_EKSPRESI: &str = "robot/expression";
 pub const TOPIC_LLM_WORD: &str = "robot/word";
 pub const TOPIC_LLM_SENTENCE: &str = "robot/sentence";
 pub const TOPIC_LLM_VOICE_STAGE: &str = "robot/voice_stage";
+pub const TOPIC_CV_GAZE: &str = "robot/gaze";
 
 /// Topik bawaan backend; bootstrap tidak menulis ulang daftar ini.
 pub const DEFAULT_TOPICS: &[&str] = &[
@@ -16,6 +17,7 @@ pub const DEFAULT_TOPICS: &[&str] = &[
     TOPIC_LLM_VOICE_STAGE,
     TOPIC_LLM_WORD,
     TOPIC_LLM_SENTENCE,
+    TOPIC_CV_GAZE,
     "brone/face/ekspresi",
     "brone/face/viseme",
     "brone/face/bicara",
@@ -25,6 +27,13 @@ pub const DEFAULT_TOPICS: &[&str] = &[
 /// Validasi hasil tetap per pesan di transport agar paket gabungan tidak menjadi atomik.
 pub fn parse_pesan(topic: &str, payload: &str) -> Result<Vec<Pesan>, String> {
     match topic {
+        TOPIC_CV_GAZE => {
+            let GazePayload::Gaze { x } = serde_json::from_str(payload)
+                .map_err(|e| format!("JSON gaze tidak valid: {e}"))?;
+            let pesan = Pesan::Gaze { x };
+            validasi_pesan(&pesan).map_err(str::to_string)?;
+            Ok(vec![pesan])
+        }
         TOPIC_LLM_EKSPRESI | TOPIC_LLM_VOICE_STAGE | TOPIC_LLM_WORD | TOPIC_LLM_SENTENCE => {
             pesan_dari_llm(topic, payload)
         }
@@ -35,6 +44,13 @@ pub fn parse_pesan(topic: &str, payload: &str) -> Result<Vec<Pesan>, String> {
             .map(|p| vec![p])
             .map_err(|e| format!("JSON tidak sesuai kontrak GUI: {e}")),
     }
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "type", deny_unknown_fields)]
+enum GazePayload {
+    #[serde(rename = "gaze")]
+    Gaze { x: f64 },
 }
 
 #[derive(Deserialize)]
@@ -207,6 +223,34 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_gaze_contract() {
+        for x in [-f64::MAX, -5.0, -1.0, -0.5, 0.0, 0.5, 1.0, 8.0, f64::MAX] {
+            let payload = serde_json::json!({"type": "gaze", "x": x}).to_string();
+            let pesan = parse_pesan(TOPIC_CV_GAZE, &payload).unwrap();
+            assert_eq!(pesan, vec![Pesan::Gaze { x }]);
+            assert_eq!(pesan[0].event_name(), "brone://gaze");
+            assert_eq!(serde_json::to_value(&pesan[0]).unwrap(),
+                serde_json::json!({"tipe": "gaze", "x": x}));
+        }
+        for payload in [
+            "not json", "null", "[]", "{}",
+            r#"["gaze",0]"#,
+            r#"{"type":"gaze"}"#, r#"{"x":0}"#,
+            r#"{"type":"other","x":0}"#,
+            r#"{"type":"gaze","x":"0.5"}"#,
+            r#"{"type":"gaze","x":null}"#,
+            r#"{"type":"gaze","x":true}"#,
+            r#"{"type":"gaze","x":0,"y":0}"#,
+            r#"{"type":"gaze","x":0,"x":1}"#,
+        ] {
+            assert!(parse_pesan(TOPIC_CV_GAZE, payload).is_err(), "{payload}");
+        }
+        for x in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert!(validasi_pesan(&Pesan::Gaze { x }).is_err());
+        }
+    }
+
+    #[test]
     fn test_routing_preserves_combined_event_order_and_payload() {
         let pesan = parse_pesan(
             TOPIC_LLM_EKSPRESI,
@@ -272,8 +316,8 @@ mod tests {
         assert!(parse_pesan(TOPIC_LLM_WORD, r#"{"word":""}"#).is_err());
         assert!(parse_pesan(TOPIC_LLM_VOICE_STAGE,
             r#"{"stage":"tts","state":"progress"}"#).unwrap().is_empty());
-        assert_eq!(parse_pesan("robot/gaze", r#"{"type":"gaze","x":0.5}"#).unwrap_err(),
-            "Topik LLM tidak dikenal: robot/gaze");
+        assert_eq!(parse_pesan("robot/unknown", "{}").unwrap_err(),
+            "Topik LLM tidak dikenal: robot/unknown");
         assert!(parse_pesan("brone/face/ekspresi", "not json").is_err());
     }
 

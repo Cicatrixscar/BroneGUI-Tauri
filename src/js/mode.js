@@ -48,6 +48,7 @@ export class ModeManager {
     const targetMode = previousMode === 'dinamis' ? 'statis' : 'dinamis';
 
     this.currentMode = targetMode;
+    this.state?.resetGaze?.();
     const timestamp = new Date().toISOString();
     console.info(`[${timestamp}] [Mode] Mode berganti dari ${previousMode} ke ${targetMode}`);
 
