@@ -102,6 +102,19 @@ export class ControlPanel {
       </div>
 
       <div class="panel-section">
+        <div class="section-title">Offset Waktu Mulut (${this.keymap.visemeOffsetDown ?? '['} / ${this.keymap.visemeOffsetUp ?? ']'})</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 13px; color: #8b949e;">Lead Time:</span>
+          <span id="viseme-offset-val" style="font-weight: 600; color: #58a6ff;">${this.visemeController?.leadOffset ?? 50} ms</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+          <button id="btn-offset-down" class="panel-btn" type="button"><kbd>${this.keymap.visemeOffsetDown ?? '['}</kbd> -10ms</button>
+          <button id="btn-offset-reset" class="panel-btn" type="button"><kbd>${this.keymap.visemeOffsetReset ?? '\\'}</kbd> Reset</button>
+          <button id="btn-offset-up" class="panel-btn" type="button"><kbd>${this.keymap.visemeOffsetUp ?? ']'}</kbd> +10ms</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
         <div class="section-title">Ekspresi (1–9)</div>
         <div class="button-grid" id="expr-buttons"></div>
       </div>
@@ -206,6 +219,30 @@ export class ControlPanel {
       });
     }
 
+    const btnOffsetDown = this.panelEl.querySelector('#btn-offset-down');
+    if (btnOffsetDown && this.visemeController) {
+      btnOffsetDown.addEventListener('click', () => {
+        const val = this.visemeController.adjustLeadOffset(-10);
+        this.showVisemeOffset(val);
+      });
+    }
+
+    const btnOffsetReset = this.panelEl.querySelector('#btn-offset-reset');
+    if (btnOffsetReset && this.visemeController) {
+      btnOffsetReset.addEventListener('click', () => {
+        const val = this.visemeController.resetLeadOffset();
+        this.showVisemeOffset(val);
+      });
+    }
+
+    const btnOffsetUp = this.panelEl.querySelector('#btn-offset-up');
+    if (btnOffsetUp && this.visemeController) {
+      btnOffsetUp.addEventListener('click', () => {
+        const val = this.visemeController.adjustLeadOffset(10);
+        this.showVisemeOffset(val);
+      });
+    }
+
     this.updateActiveIndicators();
   }
 
@@ -237,11 +274,29 @@ export class ControlPanel {
     this.visemeNoticeTimer = setTimeout(() => { this.visemeNotice.hidden = true; }, 2000);
   }
 
+  showVisemeOffset(offset) {
+    if (!this.visemeNotice) return;
+    const desc = offset === 0
+      ? '0 ms (tanpa offset)'
+      : `+${offset} ms (lebih cepat)`;
+    this.visemeNotice.textContent = `⚡ Offset Mulut: ${desc}  [${this.keymap.visemeOffsetDown ?? '['}: -10 | ${this.keymap.visemeOffsetUp ?? ']'}: +10 | ${this.keymap.visemeOffsetReset ?? '\\'}: reset]`;
+    this.visemeNotice.hidden = false;
+    clearTimeout(this.visemeNoticeTimer);
+    this.visemeNoticeTimer = setTimeout(() => { this.visemeNotice.hidden = true; }, 2200);
+    this.updateActiveIndicators();
+  }
+
   updateActiveIndicators() {
     if (!this.panelEl || !this.state) return;
 
     const select = this.panelEl.querySelector('#viseme-mode');
     if (select && this.visemeController) select.value = this.visemeController.mode;
+
+    const offsetEl = this.panelEl.querySelector('#viseme-offset-val');
+    if (offsetEl && this.visemeController) {
+      const offset = this.visemeController.leadOffset ?? 0;
+      offsetEl.textContent = `${offset} ms${offset > 0 ? ' (lead)' : ''}`;
+    }
 
     // Update ekspresi aktif
     const currentEmotion = this.state.emosi;

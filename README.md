@@ -661,6 +661,8 @@ Toggle: **F2** (atau klik "Ganti Mode" di panel).
 | **F11** | Toggle layar penuh ↔ jendela |
 | **F2** | Toggle mode Dinamis ↔ Statis |
 | **F4** | Berganti mode viseme saat mode Dinamis (`Bawaan` ↔ `Streaming kata` ↔ `Fallback mulut`) |
+| **`[`** / **`]`** | **Live Calibration:** Kurangi / Tambah lead offset viseme (-10ms / +10ms, batas 0–200ms) |
+| **`\`** | **Reset Calibration:** Kembalikan lead offset viseme ke default (50ms) |
 | **F3** | Toggle panel kontrol (hanya di mode statis) |
 | **Escape** / **Ctrl+Q** | Keluar aplikasi |
 | **1–9** | Set ekspresi (hanya di mode statis) |

@@ -29,6 +29,7 @@ export function initConnector(state, modeManager) {
   // Fallback mulut saat bicara. Nonaktif default; hanya untuk worst case bila
   // jadwal viseme dinamis dari LLM tidak pernah datang. Aktifkan lewat config.
   let _fallbackTimer = null;
+  let _fallbackInitialTimer = null;
   let _fallbackWatchdog = null;
   const fallbackConfig = state?.config?.bicara ?? {};
   const streaming = new WordVisemeController(state);
@@ -41,6 +42,53 @@ export function initConnector(state, modeManager) {
   state.visemeMode = visemeMode;
   const fallbackIntervalMs = fallbackConfig.fallbackIntervalMs ?? 140;
   const fallbackWatchdogMs = fallbackConfig.fallbackWatchdogMs ?? 10000;
+
+  // Lead Offset Viseme (Live Calibration: 0 - 200 ms)
+  const configLeadOffset = typeof fallbackConfig.leadOffsetMs === 'number'
+    ? fallbackConfig.leadOffsetMs
+    : 0;
+
+  function readSavedLeadOffset() {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('brone_viseme_lead_offset_ms');
+        if (saved !== null) {
+          const parsed = parseInt(saved, 10);
+          if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 200) {
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+    return null;
+  }
+
+  let leadOffsetMs = readSavedLeadOffset() ?? configLeadOffset;
+  if (state) state.leadOffsetMs = leadOffsetMs;
+
+  function setLeadOffset(val) {
+    const clamped = Math.max(0, Math.min(200, Math.round(Number(val) || 0)));
+    leadOffsetMs = clamped;
+    if (state) state.leadOffsetMs = clamped;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('brone_viseme_lead_offset_ms', String(clamped));
+      } catch {}
+    }
+    state?.notifyChange?.();
+    return clamped;
+  }
+
+  function adjustLeadOffset(delta) {
+    return setLeadOffset(leadOffsetMs + delta);
+  }
+
+  function resetLeadOffset() {
+    const defaultVal = typeof fallbackConfig.leadOffsetMs === 'number'
+      ? fallbackConfig.leadOffsetMs
+      : 50;
+    return setLeadOffset(defaultVal);
+  }
 
   // Timer untuk menahan ekspresi setelah bicara sebelum kembali ke idle (Post-Speech Emotion Hold)
   let _postSpeechHoldTimer = null;
@@ -65,6 +113,10 @@ export function initConnector(state, modeManager) {
   }
 
   function hentikanFallbackMulut(reset = true, triggerHold = false) {
+    if (_fallbackInitialTimer !== null) {
+      clearTimeout(_fallbackInitialTimer);
+      _fallbackInitialTimer = null;
+    }
     if (_fallbackTimer !== null) {
       clearInterval(_fallbackTimer);
       _fallbackTimer = null;
@@ -86,10 +138,18 @@ export function initConnector(state, modeManager) {
 
     const fallbackVisemes = ['O', 'REST'];
     let index = 1;
-    _fallbackTimer = setInterval(() => {
-      index = index === 0 ? 1 : 0;
+    const initialDelayMs = Math.max(0, fallbackIntervalMs - leadOffsetMs);
+
+    _fallbackInitialTimer = setTimeout(() => {
+      _fallbackInitialTimer = null;
+      index = 0;
       state.setViseme(fallbackVisemes[index]);
-    }, fallbackIntervalMs);
+
+      _fallbackTimer = setInterval(() => {
+        index = index === 0 ? 1 : 0;
+        state.setViseme(fallbackVisemes[index]);
+      }, fallbackIntervalMs);
+    }, initialDelayMs);
 
     const batasWaktuMs = (typeof durasiS === 'number' && durasiS > 0)
       ? durasiS * 1000
@@ -123,7 +183,7 @@ export function initConnector(state, modeManager) {
     const waktuMulai = performance.now();
 
     terurut.forEach((item) => {
-      const tundaMs = Math.max(0, item.t * 1000);
+      const tundaMs = Math.max(0, Math.round(item.t * 1000 - leadOffsetMs));
       const timerId = setTimeout(() => {
         // Hanya set jika state masih "hidup" (bicara belum selesai)
         state.setViseme(item.v);
@@ -133,10 +193,11 @@ export function initConnector(state, modeManager) {
 
     // Pasang watchdog: jika tidak ada pesan 'bicara/selesai', reset setelah viseme terakhir + 500ms buffer
     const tAkhir = terurut[terurut.length - 1].t;
+    const watchdogDelay = Math.max(0, Math.round((tAkhir * 1000) - leadOffsetMs) + 500);
     const watchdogId = setTimeout(() => {
       state.setViseme('DIAM');
       mulaiPostSpeechHold();
-    }, tAkhir * 1000 + 500);
+    }, watchdogDelay);
     _visemeTimers.push(watchdogId);
   }
 
@@ -271,6 +332,7 @@ export function initConnector(state, modeManager) {
 
   const controller = {
     get mode() { return visemeMode; },
+    get leadOffset() { return leadOffsetMs; },
     setMode(mode) {
       if (!validModes.includes(mode) || mode === visemeMode) return;
       stop();
@@ -279,6 +341,9 @@ export function initConnector(state, modeManager) {
       state.visemeMode = mode;
       state.notifyChange?.();
     },
+    setLeadOffset,
+    adjustLeadOffset,
+    resetLeadOffset,
     stop,
   };
 

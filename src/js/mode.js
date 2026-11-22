@@ -100,6 +100,28 @@ export class ModeManager {
       return;
     }
 
+    // Live adjustment lead offset viseme ([ = kurangi 10ms, ] = tambah 10ms, \ = reset)
+    const keyOffsetDown = this.keymap.visemeOffsetDown ?? '[';
+    const keyOffsetUp = this.keymap.visemeOffsetUp ?? ']';
+    const keyOffsetReset = this.keymap.visemeOffsetReset ?? '\\';
+
+    if (key === keyOffsetDown || key === keyOffsetUp || key === keyOffsetReset) {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      event.preventDefault();
+      if (!this.visemeController) return;
+
+      let newOffset;
+      if (key === keyOffsetDown) {
+        newOffset = this.visemeController.adjustLeadOffset(-10);
+      } else if (key === keyOffsetUp) {
+        newOffset = this.visemeController.adjustLeadOffset(10);
+      } else {
+        newOffset = this.visemeController.resetLeadOffset();
+      }
+      this.onVisemeOffsetChange?.(newOffset);
+      return;
+    }
+
     // Mode dinamis tetap mengabaikan kontrol ekspresi/viseme manual.
     if (this.isDynamic()) {
       return;

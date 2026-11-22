@@ -52,6 +52,60 @@ test('viseme shortcut follows keymap and ignores manual expression keys in dynam
   assert.equal(manager.visemeController.mode, 'streaming');
 });
 
+test('viseme lead offset adjustment shortcuts ([ and ]) work in dynamic and static modes', () => {
+  const manager = new ModeManager({});
+  let currentOffset = 50;
+  const calls = [];
+  manager.visemeController = {
+    adjustLeadOffset(delta) {
+      currentOffset += delta;
+      calls.push(`adjust(${delta})`);
+      return currentOffset;
+    },
+    resetLeadOffset() {
+      currentOffset = 50;
+      calls.push('reset');
+      return currentOffset;
+    }
+  };
+  const offsetEvents = [];
+  manager.onVisemeOffsetChange = offset => offsetEvents.push(offset);
+
+  let prevented = 0;
+  const press = (key, extra = {}) => manager.handleKeyDown({
+    key, preventDefault() { prevented++; }, ...extra
+  });
+
+  // Uji penyesuaian di mode dinamis
+  press('[');
+  assert.equal(currentOffset, 40);
+  assert.equal(prevented, 1);
+
+  press(']');
+  assert.equal(currentOffset, 50);
+  assert.equal(prevented, 2);
+
+  press('\\');
+  assert.equal(currentOffset, 50);
+  assert.equal(prevented, 3);
+
+  // Abaikan jika modifier ditekan
+  press('[', { ctrlKey: true });
+  press(']', { altKey: true });
+  press('\\', { metaKey: true });
+  assert.equal(currentOffset, 50);
+
+  // Uji di mode statis juga tetap berfungsi
+  manager.currentMode = 'statis';
+  press('[');
+  assert.equal(currentOffset, 40);
+  press(']');
+  assert.equal(currentOffset, 50);
+
+  assert.deepEqual(calls, ['adjust(-10)', 'adjust(10)', 'reset', 'adjust(-10)', 'adjust(10)']);
+  assert.deepEqual(offsetEvents, [40, 50, 50, 40, 50]);
+});
+
 test('ModeManager defaults to dynamic mode', () => {
   const manager = new ModeManager({
     mode: { default_mode: 'dinamis', mode_statis_aktif: true }

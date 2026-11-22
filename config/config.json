@@ -167,8 +167,24 @@
     "maxIntervalMs": 6000,
     "durationMs": 350
   },
+  "gaze": {
+    "maxOffsetX": 20,
+    "durationMs": 150
+  },
   "bicara": {
+    "leadOffsetMs": 50,
     "fallbackMulutAktif": false,
+    "visemeMode": "bawaan",
+    "streaming": {
+      "syllableMs": 150,
+      "bilabialMs": 45,
+      "extraVowelMs": 100,
+      "punctuationMs": 180,
+      "silenceTimeoutMs": 1200,
+      "watchdogMs": 10000,
+      "morphMs": 60,
+      "closureMorphMs": 25
+    },
     "fallbackIntervalMs": 140,
     "fallbackWatchdogMs": 10000,
     "holdAfterSpeechMs": 5000
@@ -188,6 +204,9 @@
     "topics": [
       "robot/expression",
       "robot/voice_stage",
+      "robot/word",
+      "robot/sentence",
+      "robot/gaze",
       "brone/face/ekspresi",
       "brone/face/viseme",
       "brone/face/bicara"

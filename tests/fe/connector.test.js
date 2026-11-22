@@ -234,3 +234,79 @@ describe('Connector — post-speech emotion hold & interupsi', () => {
   });
 });
 
+describe('Connector — live calibration lead offset viseme', () => {
+  it('controller menyediakan leadOffset dan fungsi kalibrasi clamped 0-200ms', () => {
+    const state = buatStateMock({ bicara: { leadOffsetMs: 50 } });
+    const controller = initConnector(state, modeManagerLolos);
+
+    assert.equal(controller.leadOffset, 50);
+    assert.equal(state.leadOffsetMs, 50);
+
+    // Tambah 10ms
+    assert.equal(controller.adjustLeadOffset(10), 60);
+    assert.equal(controller.leadOffset, 60);
+    assert.equal(state.leadOffsetMs, 60);
+
+    // Kurang sampai mentok di 0
+    assert.equal(controller.adjustLeadOffset(-100), 0);
+    assert.equal(controller.leadOffset, 0);
+
+    // Tambah sampai mentok di 200
+    assert.equal(controller.adjustLeadOffset(300), 200);
+    assert.equal(controller.leadOffset, 200);
+
+    // Reset ke default config (50)
+    assert.equal(controller.resetLeadOffset(), 50);
+    assert.equal(controller.leadOffset, 50);
+  });
+
+  it('leadOffset memajukan eksekusi jadwal viseme sesuai offsetMs', (_, done) => {
+    const state = buatStateMock({ bicara: { leadOffsetMs: 50 } });
+    const controller = initConnector(state, modeManagerLolos);
+
+    // Jadwal: t=0.1s (100ms). Dengan leadOffset 50ms, viseme 'U' harus aktif di tundaMs = 50ms.
+    window.sendBroneMessage({
+      tipe: 'viseme',
+      jadwal: [{ t: 0, v: 'REST' }, { t: 0.1, v: 'U' }]
+    });
+
+    // Pada 20ms, masih REST
+    setTimeout(() => {
+      assert.equal(state.viseme, 'REST');
+    }, 20);
+
+    // Pada 65ms (> 50ms, tapi < 100ms tanpa offset), viseme 'U' sudah aktif
+    setTimeout(() => {
+      assert.equal(state.viseme, 'U');
+      done();
+    }, 65);
+  });
+
+  it('leadOffset mempercepat initial opening mulut di mode fallback', (_, done) => {
+    const state = buatStateMock({
+      bicara: {
+        fallbackMulutAktif: true,
+        fallbackIntervalMs: 80,
+        fallbackWatchdogMs: 500,
+        leadOffsetMs: 30, // delay awal = 80 - 30 = 50ms
+      },
+    });
+    initConnector(state, modeManagerLolos);
+
+    window.sendBroneMessage({ tipe: 'bicara', status: 'mulai' });
+    assert.equal(state.viseme, 'DIAM');
+
+    // Pada 25ms (< 50ms), masih DIAM
+    setTimeout(() => {
+      assert.equal(state.viseme, 'DIAM');
+    }, 25);
+
+    // Pada 60ms (> 50ms, tapi < 80ms), mulut sudah membuka ke 'O'
+    setTimeout(() => {
+      assert.equal(state.viseme, 'O');
+      window.sendBroneMessage({ tipe: 'bicara', status: 'selesai' });
+      done();
+    }, 60);
+  });
+});
+

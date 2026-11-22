@@ -172,6 +172,7 @@
     "durationMs": 150
   },
   "bicara": {
+    "leadOffsetMs": 50,
     "fallbackMulutAktif": false,
     "visemeMode": "bawaan",
     "streaming": {

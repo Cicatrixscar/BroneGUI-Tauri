@@ -281,6 +281,7 @@ async function initApp() {
   const panel = new ControlPanel(state, modeManager, keymap, visemeController);
   modeManager.visemeController = visemeController;
   modeManager.onVisemeModeChange = mode => panel.showVisemeMode(mode);
+  modeManager.onVisemeOffsetChange = offset => panel.showVisemeOffset(offset);
   modeManager.panel = panel;
   modeManager.onModeChange = (mode) => {
     visemeController.stop();

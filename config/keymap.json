@@ -1,6 +1,10 @@
 {
   "toggleMode": "F2",
   "togglePanel": "F3",
+  "toggleVisemeMode": "F4",
+  "visemeOffsetDown": "[",
+  "visemeOffsetUp": "]",
+  "visemeOffsetReset": "\\",
   "expressions": {
     "1": "idle",
     "2": "confused",
