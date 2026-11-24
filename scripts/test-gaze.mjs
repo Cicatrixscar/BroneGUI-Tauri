@@ -48,7 +48,7 @@ try {
       if (stopSignal.signal.aborted) break;
       const receivers = await send(x);
       sent = true;
-      console.log(`Siklus ${cycle}: ${x < 0 ? 'kiri' : 'kanan'} (x=${x}), terkirim ke ${receivers} browser`);
+      console.log(`Siklus ${cycle}: input CV x=${x}, terkirim ke ${receivers} browser`);
       await wait(intervalMs, undefined, { signal: stopSignal.signal });
     }
   }

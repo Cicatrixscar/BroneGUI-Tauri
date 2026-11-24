@@ -1,7 +1,7 @@
 # Implementasi gaze horizontal
 
 Status: implementasi tersedia. Jalur terminal HTTP/SSE ke browser sudah diuji; build/test Rust dan MQTT/Tauri langsung belum dijalankan karena toolchain belum tersedia.
-Tanggal: 20 November 2026.
+Tanggal: 20 November 2026. Pembaruan sensitivitas: 24 November 2026.
 
 Dokumen ini mencatat implementasi dari rancangan gaze horizontal. Kontrak aktif ada di [CONTRACT.md](CONTRACT.md). Permintaan implementasi diberikan setelah rancangan awal dan perapihan backend selesai.
 
@@ -19,17 +19,19 @@ Topik MQTT: `robot/gaze`. Kirim tanpa retain.
 {"type":"gaze","x":0.5}
 ```
 
-| Nilai x | Hasil |
-|---|---|
-| `-1` | Batas kiri layar |
-| `-0.5` | Setengah jalan ke kiri |
-| `0` | Posisi dasar ekspresi aktif |
-| `0.5` | Setengah jalan ke kanan |
-| `1` | Batas kanan layar |
+| Input x (sensitivitas 4, invertX true) | Target GUI | Geseran SVG |
+|---|---|---|
+| `-0.5` atau lebih negatif | `2` | `40` |
+| `-0.4` | `1.6` | `32` |
+| `-0.2` | `0.8` | `16` |
+| `0` | `0` | `0` |
+| `0.2` | `-0.8` | `-16` |
+| `0.4` | `-1.6` | `-32` |
+| `0.5` atau lebih positif | `-2` | `-40` |
 
-Arah mengikuti layar yang dilihat orang di depan robot. Modul CV bertanggung jawab memetakan koordinat kamera, termasuk pencerminan. `x` adalah target absolut yang dinormalisasi; mengirim `0.5` berulang tidak menambah geseran.
+Arah mengikuti layar yang dilihat orang di depan robot. GUI mengoreksi pencerminan kamera dengan `gaze.invertX: true` (default). Input positif menggeser mata ke kiri layar, input negatif ke kanan layar. Gunakan `invertX: false` jika CV sudah mengoreksi arahnya; jangan membalik di kedua sisi sekaligus. `x` adalah input absolut; mengirim nilai yang sama berulang tidak menambah geseran.
 
-Payload wajib objek JSON dengan tepat dua field: `type` bernilai string `gaze`, dan `x` berupa angka finite berapa pun. Backend dan bridge meneruskan nilai asli; GUI membatasi target dengan `clamp(x, -1, 1)`. Nilai di bawah `-1` menjadi `-1`, di atas `1` menjadi `1`, dan nilai di dalam rentang tetap. String angka, boolean, null, field hilang, field tambahan, nilai non-finite, dan JSON rusak ditolak. Target terakhir tidak berubah saat pesan invalid.
+Payload wajib objek JSON dengan tepat dua field: `type` bernilai string `gaze`, dan `x` berupa angka finite berapa pun. Backend dan bridge meneruskan nilai asli; GUI memakai `clamp(x * sensitivity * direction, -2, 2)`. String angka, boolean, null, field hilang, field tambahan, nilai non-finite, dan JSON rusak ditolak. Target terakhir tidak berubah saat pesan invalid.
 
 ## 3. Alur implementasi
 
@@ -55,20 +57,24 @@ Konfigurasi di `src/config/config.json`:
 
 ```json
 "gaze": {
+  "invertX": true,
+  "sensitivity": 4,
   "maxOffsetX": 20,
   "durationMs": 150
 }
 ```
 
-Angka tersebut adalah nilai awal kalibrasi. `maxOffsetX` menggunakan satuan SVG pada viewBox dasar `800 x 480`, bukan piksel fisik layar. `durationMs` mengatur durasi lokal dengan easing ease-out kuadratik; tidak perlu menambah durasi dalam payload CV.
+Angka tersebut adalah nilai awal kalibrasi. `sensitivity` mengalikan input CV sebelum dibatasi ke [-2, 2]; nilainya wajib angka finite positif, nilai hilang/invalid memakai 4. Naikkan ke 6 jika masih kurang terasa atau turunkan ke 2 jika terlalu peka. `maxOffsetX` adalah jarak per satu unit target (nama config lama dipertahankan), menggunakan satuan SVG pada viewBox dasar `800 x 480`, bukan piksel fisik layar. `durationMs` mengatur durasi lokal dengan easing ease-out kuadratik; tidak perlu menambah durasi dalam payload CV.
 
 ```text
+direction = invertX ? -1 : 1
+targetGaze = clamp(xCV * sensitivity * direction, -2, 2)
 offsetX = gazeTerlihat * maxOffsetX
 xKiriTampil = xKiriDasarEkspresi + offsetX
 xKananTampil = xKananDasarEkspresi + offsetX
 ```
 
-Misalnya, target `0.5` menghasilkan offset akhir `10` satuan SVG dengan config awal. Jarak antar mata tetap. Resize mengikuti penskalaan SVG.
+Dengan config awal, input CV `0.2` menghasilkan target `-0.8` dan offset akhir `-16` satuan SVG; input `0.4` menghasilkan target `-1.6` dan offset `-32`. Batas maksimum geseran menjadi -40 sampai 40 satuan SVG. Jarak antar mata tetap. Resize mengikuti penskalaan SVG.
 
 Renderer memakai loop requestAnimationFrame yang sudah ada. Target baru menggantikan target lama dari posisi gerakan saat ini; tidak ada antrean. Target yang sama tidak memulai ulang gerak. Config `durationMs: 0` membuat gerakan langsung. Nilai config hilang/invalid memakai fallback 20 satuan dan 150 ms.
 
@@ -92,7 +98,7 @@ Transform gaze berada pada parent `#layer-eyes`; transform kedip/transisi tetap 
 | `src-tauri/src/connector/protocol.rs` | Varian Gaze, validasi X, nama event |
 | `src-tauri/src/connector/mqtt.rs` | Mengabaikan retained gaze |
 | `src/js/gaze.js` | Adapter JSON CV untuk bridge development |
-| `src/js/state.js` | Membatasi target X ke [-1, 1] dan reset gaze |
+| `src/js/state.js` | Mengalikan sensitivitas dan membatasi target X ke [-2, 2] dan reset gaze |
 | `src/js/connector.js` | Penerimaan event gaze tanpa lifecycle mulut |
 | `src/js/renderer.js` | Gerakan horizontal parent kedua mata |
 | `src/js/mode.js` | Reset gaze saat pergantian mode |
@@ -135,7 +141,7 @@ Contoh PowerShell untuk JSON mentah:
 Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/message -ContentType application/json -Body '{"type":"gaze","x":-0.5}'
 ```
 
-Tes pembatasan: `node scripts/send.js gaze -5` bergerak ke batas kiri dan `node scripts/send.js gaze 8` ke batas kanan. Nilai `0.5` tetap setengah jalan ke kanan. Ini pembatasan, bukan pemetaan otomatis koordinat piksel kamera ke seluruh rentang gaze. Payload HTTP `{"type":"gaze","x":"0.5"}` atau field tambahan `y` harus menghasilkan HTTP 400.
+Tes pembatasan: `node scripts/send.js gaze -5` bergerak ke batas kanan dan `node scripts/send.js gaze 8` ke batas kiri. Dengan sensitivitas 4, nilai `0.5` sudah mencapai batas kiri; gunakan `0.2`/`0.4` untuk memeriksa penguatan nilai CV kecil. Ini pembatasan, bukan pemetaan otomatis koordinat piksel kamera ke seluruh rentang gaze. Payload HTTP `{"type":"gaze","x":"0.5"}` atau field tambahan `y` harus menghasilkan HTTP 400.
 
 Untuk desktop Tauri atau browser dengan Mosquitto bridge tersedia, gunakan MQTT. Contoh PowerShell, tanpa flag retain:
 
@@ -159,6 +165,10 @@ cargo test --manifest-path src-tauri/Cargo.toml --lib
 
 Tes frontend memeriksa validasi, interpolasi, retarget tanpa lompatan, penahanan ekspresi khusus, reset statis, dan perbandingan timing emosi/viseme dengan serta tanpa gaze pada mode bawaan, streaming, dan fallback. Tes Rust untuk format CV dan angka finite sudah ditambahkan; tes frontend memeriksa pembatasan target termasuk angka ekstrem dan target efektif berulang.
 
-Sebanyak 60 tes frontend lulus. Uji browser melalui CLI/HTTP/SSE juga lulus, termasuk pembatasan input -5, 8, serta angka finite ekstrem ke batas GUI, gerak mata, kedip otomatis yang teramati, pergantian ekspresi, static reset, dan streaming kalimat bersamaan. Screenshot tiga posisi sudah diperiksa pada 800 x 480. Penskalaan pada 400 x 240 dan 1600 x 960 sudah diverifikasi dan dicatat pada `verification.json`. Retarget saat animasi dibuktikan dalam tes frontend deterministik.
+Sebanyak 66 tes frontend lulus. Uji browser melalui CLI/HTTP/SSE juga lulus, termasuk pembatasan input -5, 8, serta angka finite ekstrem ke batas GUI, gerak mata, kedip otomatis yang teramati, pergantian ekspresi, static reset, dan streaming kalimat bersamaan. Screenshot tiga posisi sudah diperiksa pada 800 x 480. Penskalaan pada 400 x 240 dan 1600 x 960 sudah diverifikasi dan dicatat pada `verification.json`. Retarget saat animasi dibuktikan dalam tes frontend deterministik.
 
 Build/test Rust, MQTT dengan broker nyata, pengabaian retained gaze saat reconnect, serta visual Tauri/WebKitGTK belum terverifikasi pada lingkungan ini karena Cargo/Mosquitto CLI belum tersedia. Uji browser tidak menggantikan pemeriksaan tersebut.
+
+Kalibrasi sensitivitas 24 November 2026: input CV sekitar 0.2 sampai 0.4 diperkuat 4 kali; rentang target diperlebar dari [-1, 1] menjadi [-2, 2]. Perubahan ini hanya pada pemetaan frontend, tanpa perubahan JSON atau adapter LLM/TTS. Reload browser atau restart aplikasi setelah mengubah config.
+
+Koreksi mirroring: `invertX` aktif secara default di GUI, termasuk jika field config tidak tersedia. Set `false` untuk menonaktifkan pembalikan tanpa mengubah program CV atau format JSON. Sensitivitas, batas target, dan lifecycle gaze tetap sama.

@@ -53,7 +53,10 @@ export class FaceState {
 
   setGaze(x) {
     if (!Number.isFinite(x)) return;
-    const target = Math.max(-1, Math.min(1, x));
+    const configured = this.config.gaze?.sensitivity;
+    const sensitivity = Number.isFinite(configured) && configured > 0 ? configured : 4;
+    const direction = this.config.gaze?.invertX === false ? 1 : -1;
+    const target = Math.max(-2, Math.min(2, x * sensitivity * direction));
     if (this.gazeX === target) return;
     this.gazeX = target;
     this.notifyChange();

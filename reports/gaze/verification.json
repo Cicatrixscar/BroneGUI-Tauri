@@ -14,70 +14,87 @@
     "mouth": "assets/IDLE.svg"
   },
   "left": {
-    "transform": "translate(-20 0)",
+    "transform": "translate(-40 0)",
     "left": {
       "baseX": 115,
       "y": 154,
-      "screenX": 95
+      "screenX": 75
     },
     "right": {
       "baseX": 556,
       "y": 154,
-      "screenX": 536
+      "screenX": 516
     },
     "mouth": "assets/IDLE.svg"
   },
   "right": {
-    "transform": "translate(20 0)",
+    "transform": "translate(40 0)",
     "left": {
       "baseX": 115,
       "y": 154,
-      "screenX": 135
+      "screenX": 155
     },
     "right": {
       "baseX": 556,
       "y": 154,
-      "screenX": 576
+      "screenX": 596
     },
     "mouth": "assets/IDLE.svg"
   },
   "clamped": [
     {
       "input": -5,
-      "transform": "translate(-20 0)"
+      "transform": "translate(40 0)"
     },
     {
       "input": 8,
-      "transform": "translate(20 0)"
+      "transform": "translate(-40 0)"
     },
     {
       "input": -1.7976931348623157e+308,
-      "transform": "translate(-20 0)"
+      "transform": "translate(40 0)"
     },
     {
       "input": 1.7976931348623157e+308,
-      "transform": "translate(20 0)"
+      "transform": "translate(-40 0)"
+    },
+    {
+      "input": 0.2,
+      "transform": "translate(-16 0)"
+    },
+    {
+      "input": 0.4,
+      "transform": "translate(-32 0)"
+    },
+    {
+      "input": -0.2,
+      "transform": "translate(16.000000000000007 0)"
+    },
+    {
+      "input": -0.4,
+      "transform": "translate(32 0)"
     },
     {
       "input": 0.5,
-      "transform": "translate(10 0)"
+      "transform": "translate(-40 0)"
     }
   ],
   "viewports": [
     {
       "width": 400,
       "height": 240,
-      "leftScreenX": 67.5
+      "leftScreenX": 37.5
     },
     {
       "width": 1600,
       "height": 960,
-      "leftScreenX": 270
+      "leftScreenX": 150
     }
   ],
   "verified": [
     "terminal CLI -> HTTP -> SSE -> rendered SVG",
-    "finite out-of-range input clamped by GUI",
+    "4x sensitivity for CV input +/-0.2 and +/-0.4; target clamped to [-2, 2]",
+    "camera mirroring: positive input moves left, negative input moves right",
     "invalid gaze rejected",
     "observed automatic blink and expression transitions",
     "cry/timeout suppression and resume",

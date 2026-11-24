@@ -19,6 +19,7 @@ test('CV gaze accepts only two fields and preserves every finite coordinate', ()
 });
 
 function setupRenderer(config = {}) {
+  config = { ...config, gaze: { sensitivity: 1, invertX: false, ...config.gaze } };
   globalThis.window = { addEventListener() {} };
   const elements = new Map();
   const svg = { querySelector(selector) {
@@ -71,23 +72,65 @@ test('GUI clamps extreme gaze and does not restart movement for the same effecti
   state.setGaze(8);
   renderer.updateGaze(0);
   renderer.updateGaze(75);
-  assert.equal(state.gazeX, 1);
-  assert.equal(offset(), 15);
+  assert.equal(state.gazeX, 2);
+  assert.equal(offset(), 30);
   state.setGaze(Number.MAX_VALUE);
   renderer.updateGaze(150);
-  assert.equal(offset(), 20);
+  assert.equal(offset(), 40);
   state.setGaze(-5);
   renderer.updateGaze(150);
   renderer.updateGaze(225);
-  assert.equal(offset(), -10);
+  assert.equal(offset(), -20);
   state.setGaze(-Number.MAX_VALUE);
   renderer.updateGaze(300);
-  assert.equal(state.gazeX, -1);
-  assert.equal(offset(), -20);
+  assert.equal(state.gazeX, -2);
+  assert.equal(offset(), -40);
   state.setGaze(0.5);
   renderer.updateGaze(300);
   renderer.updateGaze(450);
   assert.equal(offset(), 10);
+});
+
+test('small CV coordinates are amplified before clamping to [-2, 2]', () => {
+  const { state, renderer, offset } = setupRenderer({ gaze: { sensitivity: 4, durationMs: 0 } });
+  for (const [input, target, displacement] of [
+    [0.2, 0.8, 16], [0.4, 1.6, 32], [-0.2, -0.8, -16], [-0.4, -1.6, -32],
+    [0.5, 2, 40], [-0.5, -2, -40], [Number.MAX_VALUE, 2, 40], [-Number.MAX_VALUE, -2, -40],
+    [0, 0, 0],
+  ]) {
+    state.setGaze(input);
+    renderer.updateGaze(0);
+    assert.equal(state.gazeX, target);
+    assert.equal(offset(), displacement);
+  }
+  state.config.gaze.sensitivity = 2;
+  state.setGaze(0.2);
+  assert.equal(state.gazeX, 0.4);
+  state.config.gaze.sensitivity = 6;
+  state.setGaze(0.2);
+  assert.ok(Math.abs(state.gazeX - 1.2) < 1e-12);
+  for (const sensitivity of [undefined, 0, -1, NaN, Infinity, '4']) {
+    const fallback = new FaceState({ gaze: { sensitivity } });
+    fallback.setGaze(0.2);
+    assert.equal(fallback.gazeX, -0.8);
+  }
+});
+
+test('camera mirroring flips both gaze directions once and can be disabled', () => {
+  const { state, renderer, offset } = setupRenderer({ gaze: { invertX: true, sensitivity: 4, durationMs: 0 } });
+  for (const [input, displacement] of [[0.2, -16], [-0.2, 16], [0.4, -32], [-0.4, 32],
+    [8, -40], [-5, 40], [0, 0]]) {
+    state.setGaze(input);
+    renderer.updateGaze(0);
+    assert.equal(offset(), displacement);
+  }
+  state.config.gaze.invertX = false;
+  state.setGaze(0.2);
+  renderer.updateGaze(0);
+  assert.equal(offset(), 16);
+  const defaults = new FaceState();
+  defaults.setGaze(0.2);
+  assert.equal(defaults.gazeX, -0.8);
 });
 
 test('gaze preserves eye coordinates and blink transforms; cry/timeout store the latest target', () => {

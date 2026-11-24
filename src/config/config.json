@@ -168,6 +168,8 @@
     "durationMs": 350
   },
   "gaze": {
+    "invertX": true,
+    "sensitivity": 4,
     "maxOffsetX": 20,
     "durationMs": 150
   },

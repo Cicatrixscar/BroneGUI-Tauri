@@ -93,22 +93,23 @@ try {
   };
   await wait(500);
   const result = {center: await cli(0)};
-  for (const [name, x] of [['left', -1], ['right', 1], ['center', 0]]) {
+  for (const [name, x] of [['left', 1], ['right', -1], ['center', 0]]) {
     const state = await cli(x);
-    assert.equal(state.transform, `translate(${x * 20} 0)`);
+    assert.equal(state.transform, `translate(${Math.max(-2, Math.min(2, -x * 4)) * 20} 0)`);
     for (const side of ['left', 'right']) {
       assert.equal(state[side].baseX, result.center[side].baseX);
       assert.equal(state[side].y, result.center[side].y);
-      assert.ok(Math.abs(state[side].screenX - result.center[side].screenX - x * 20) < 0.01);
+      assert.ok(Math.abs(state[side].screenX - result.center[side].screenX - Math.max(-2, Math.min(2, -x * 4)) * 20) < 0.01);
     }
     const screenshot = await send('Page.captureScreenshot', {format:'png'}, sessionId);
     await writeFile(`reports/gaze/${name}.png`, Buffer.from(screenshot.data,'base64'));
     result[name] = state;
   }
   result.clamped = [];
-  for (const [x, target] of [[-5, -1], [8, 1], [-Number.MAX_VALUE, -1], [Number.MAX_VALUE, 1], [0.5, 0.5]]) {
+  for (const [x, target] of [[-5, -2], [8, 2], [-Number.MAX_VALUE, -2], [Number.MAX_VALUE, 2], [0.2, 0.8], [0.4, 1.6], [-0.2, -0.8], [-0.4, -1.6], [0.5, 2]]) {
     const state = await cli(x);
-    assert.equal(state.transform, `translate(${target * 20} 0)`);
+    const offset = Number(state.transform.match(/translate\(([^ ]+)/)[1]);
+    assert.ok(Math.abs(offset + target * 20) < 1e-8, state.transform);
     result.clamped.push({input:x, transform:state.transform});
   }
   await cli(0);
@@ -122,11 +123,11 @@ try {
   await cli(1);
   await post({tipe:'ekspresi', emosi:'happy'});
   await wait(450);
-  assert.equal((await sample()).transform, 'translate(20 0)');
+  assert.equal((await sample()).transform, 'translate(-40 0)');
   const blinkSeen = await evaluate(`(async () => {
     const until = performance.now() + 7000;
     while (performance.now() < until) {
-      if (document.getElementById('layer-eyes').getAttribute('transform') !== 'translate(20 0)') {
+      if (document.getElementById('layer-eyes').getAttribute('transform') !== 'translate(-40 0)') {
         throw new Error('Blink changed gaze offset');
       }
       const scale = document.getElementById('eye-l-wrap').style.transform.match(/scaleY\\(([^)]+)/);
@@ -136,7 +137,7 @@ try {
     return false;
   })()`);
   assert.equal(blinkSeen, true, 'Automatic blink was not observed');
-  assert.equal((await sample()).transform, 'translate(20 0)');
+  assert.equal((await sample()).transform, 'translate(-40 0)');
   await post({tipe:'ekspresi', emosi:'cry'});
   await wait(450);
   assert.equal((await sample()).transform, 'translate(0 0)');
@@ -144,7 +145,7 @@ try {
   assert.equal((await sample()).transform, 'translate(0 0)');
   await post({tipe:'ekspresi', emosi:'idle'});
   await wait(650);
-  assert.equal((await sample()).transform, 'translate(-20 0)');
+  assert.equal((await sample()).transform, 'translate(40 0)');
   await post({tipe:'ekspresi', emosi:'timeout'});
   await wait(450);
   assert.equal((await sample()).transform, 'translate(0 0)');
@@ -152,7 +153,7 @@ try {
   assert.match(rotation, /rotate/);
   await post({tipe:'ekspresi', emosi:'idle'});
   await wait(650);
-  assert.equal((await sample()).transform, 'translate(-20 0)');
+  assert.equal((await sample()).transform, 'translate(40 0)');
 
   // Static mode rejects gaze; returning to dynamic does not replay it.
   const key = key => evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', {key:${JSON.stringify(key)}}))`);
@@ -172,7 +173,7 @@ try {
   await post({expression:'happy', duration:0.6, sentence:'a i'});
   await cli(1);
   const speaking = await sample();
-  assert.equal(speaking.transform, 'translate(20 0)');
+  assert.equal(speaking.transform, 'translate(-40 0)');
   assert.match(speaking.mouth, /viseme\/(A|I)\.svg/);
   await wait(450);
   assert.match((await sample()).mouth, /HAPPIER\.svg/);
@@ -182,12 +183,12 @@ try {
   for (const [width, height] of [[400, 240], [1600, 960]]) {
     await send('Emulation.setDeviceMetricsOverride', {width,height,deviceScaleFactor:1,mobile:false}, sessionId);
     const resized = await cli(1);
-    assert.equal(resized.transform, 'translate(20 0)');
-    assert.ok(Math.abs(resized.left.screenX - (115 + 20) * width / 800) < 0.01);
+    assert.equal(resized.transform, 'translate(-40 0)');
+    assert.ok(Math.abs(resized.left.screenX - (115 - 40) * width / 800) < 0.01);
     result.viewports.push({width, height, leftScreenX:resized.left.screenX});
   }
   await cli(0);
-  result.verified = ['terminal CLI -> HTTP -> SSE -> rendered SVG', 'finite out-of-range input clamped by GUI', 'invalid gaze rejected',
+  result.verified = ['terminal CLI -> HTTP -> SSE -> rendered SVG', '4x sensitivity for CV input +/-0.2 and +/-0.4; target clamped to [-2, 2]', 'camera mirroring: positive input moves left, negative input moves right', 'invalid gaze rejected',
     'observed automatic blink and expression transitions', 'cry/timeout suppression and resume', 'static reset',
     'SVG scaling at 400x240 and 1600x960',
     'streaming sentence and mouth isolation'];
