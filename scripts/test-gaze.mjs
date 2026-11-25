@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // node scripts/test-gaze.mjs [interval_ms=1000] [jumlah_siklus]
 // Satu siklus: kiri -> kanan. Tanpa jumlah siklus, berjalan sampai Ctrl+C.
+// Dengan invertX=true: input CV 2 ke kiri, -2 ke kanan.
 import { setTimeout as wait } from 'node:timers/promises';
 
 const args = process.argv.slice(2);
@@ -8,6 +9,7 @@ const usage = 'Gunakan: node scripts/test-gaze.mjs [interval_ms=1000] [jumlah_si
 if (args[0] === '--help') {
   console.log(usage);
   console.log('Contoh: node scripts/test-gaze.mjs 700 10');
+  console.log('Mengirim x=2 dan x=-2 bergantian; arah layar mengikuti invertX GUI.');
   console.log('Tanpa jumlah siklus: berulang sampai Ctrl+C. Setelah selesai, mata kembali ke tengah.');
   process.exit(0);
 }
@@ -44,7 +46,7 @@ console.log(`Gaze kiri-kanan setiap ${intervalMs} ms melalui ${url}`);
 console.log('Buka browser pada /src/ dalam mode dinamis. Ctrl+C untuk berhenti.');
 try {
   for (let cycle = 1; cycle <= cycles && !stopSignal.signal.aborted; cycle++) {
-    for (const x of [-1, 1]) {
+    for (const x of [2, -2]) {
       if (stopSignal.signal.aborted) break;
       const receivers = await send(x);
       sent = true;

@@ -13,6 +13,9 @@
 <body>
   <svg id="wajah" viewBox="0 0 800 480" preserveAspectRatio="xMidYMid meet">
     <defs>
+      <!-- Rendahkan painted extent ke rectangle geometri yang dipakai gaze. -->
+      <clipPath id="eye-l-clip" clipPathUnits="userSpaceOnUse"><rect id="eye-l-bounds" /></clipPath>
+      <clipPath id="eye-r-clip" clipPathUnits="userSpaceOnUse"><rect id="eye-r-bounds" /></clipPath>
       <!-- Clip path air mata menangis (sesuai siluet asli di BRONE_FACE_CRY.svg) -->
       <!-- Menutupi kontur bawah mata (eyelid) agar air mata mengalir di atas garis mata tanpa menutupi pupil -->
       <clipPath id="tear-l-clip">
@@ -39,10 +42,10 @@
 
     <!-- Layer 3: Mata Kiri & Kanan (dengan kedip) -->
     <g id="layer-eyes">
-      <g id="eye-l-wrap" class="anim-eye">
+      <g id="eye-l-wrap" class="anim-eye" clip-path="url(#eye-l-clip)">
         <image id="eye-l" href="" />
       </g>
-      <g id="eye-r-wrap" class="anim-eye">
+      <g id="eye-r-wrap" class="anim-eye" clip-path="url(#eye-r-clip)">
         <image id="eye-r" href="" />
       </g>
     </g>

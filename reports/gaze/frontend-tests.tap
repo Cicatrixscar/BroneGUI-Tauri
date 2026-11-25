@@ -1,0 +1,518 @@
+TAP version 13
+# Subtest: BlinkController initial state is open (1.0)
+ok 1 - BlinkController initial state is open (1.0)
+  ---
+  duration_ms: 1.4332
+  type: 'test'
+  ...
+# Subtest: BlinkController triggers blink after interval passes
+ok 2 - BlinkController triggers blink after interval passes
+  ---
+  duration_ms: 0.2197
+  type: 'test'
+  ...
+# Subtest: Connector — ekspresi
+    # Subtest: setEmotion dipanggil saat payload ekspresi valid
+    ok 1 - setEmotion dipanggil saat payload ekspresi valid
+      ---
+      duration_ms: 2.1533
+      type: 'test'
+      ...
+    # Subtest: auto-reset ke idle setelah durasi_ms
+    ok 2 - auto-reset ke idle setelah durasi_ms
+      ---
+      duration_ms: 113.6172
+      type: 'test'
+      ...
+    # Subtest: pesan dibuang jika modeManager memblokir
+    ok 3 - pesan dibuang jika modeManager memblokir
+      ---
+      duration_ms: 0.469
+      type: 'test'
+      ...
+    1..3
+ok 3 - Connector — ekspresi
+  ---
+  duration_ms: 117.8423
+  type: 'suite'
+  ...
+# Subtest: Connector — viseme scheduler
+    # Subtest: viseme pertama langsung di-set saat t=0
+    ok 1 - viseme pertama langsung di-set saat t=0
+      ---
+      duration_ms: 30.8888
+      type: 'test'
+      ...
+    # Subtest: viseme kedua di-set setelah delay t=0.1s
+    ok 2 - viseme kedua di-set setelah delay t=0.1s
+      ---
+      duration_ms: 154.366
+      type: 'test'
+      ...
+    # Subtest: watchdog reset ke DIAM setelah viseme terakhir + 500ms
+    ok 3 - watchdog reset ke DIAM setelah viseme terakhir + 500ms
+      ---
+      duration_ms: 611.7175
+      type: 'test'
+      ...
+    1..3
+ok 4 - Connector — viseme scheduler
+  ---
+  duration_ms: 797.7216
+  type: 'suite'
+  ...
+# Subtest: Connector — bicara
+    # Subtest: status selesai mereset viseme ke DIAM
+    ok 1 - status selesai mereset viseme ke DIAM
+      ---
+      duration_ms: 0.5288
+      type: 'test'
+      ...
+    # Subtest: status mulai tidak mengubah state
+    ok 2 - status mulai tidak mengubah state
+      ---
+      duration_ms: 0.8658
+      type: 'test'
+      ...
+    1..2
+ok 5 - Connector — bicara
+  ---
+  duration_ms: 1.7695
+  type: 'suite'
+  ...
+# Subtest: Connector — fallback mulut bicara (nonaktif default)
+    # Subtest: aktif: mulai dari mulut ekspresi, lalu ganti vokal, selesai reset
+    ok 1 - aktif: mulai dari mulut ekspresi, lalu ganti vokal, selesai reset
+      ---
+      duration_ms: 61.8269
+      type: 'test'
+      ...
+    # Subtest: viseme asli menghentikan fallback
+    ok 2 - viseme asli menghentikan fallback
+      ---
+      duration_ms: 47.1922
+      type: 'test'
+      ...
+    1..2
+ok 6 - Connector — fallback mulut bicara (nonaktif default)
+  ---
+  duration_ms: 109.3974
+  type: 'suite'
+  ...
+# Subtest: Connector — post-speech emotion hold & interupsi
+    # Subtest: menahan ekspresi setelah bicara selesai selama holdAfterSpeechMs lalu kembali ke idle
+    ok 1 - menahan ekspresi setelah bicara selesai selama holdAfterSpeechMs lalu kembali ke idle
+      ---
+      duration_ms: 108.1433
+      type: 'test'
+      ...
+    # Subtest: interupsi baru membatalkan hold timer dan langsung beralih ke emosi baru
+    ok 2 - interupsi baru membatalkan hold timer dan langsung beralih ke emosi baru
+      ---
+      duration_ms: 203.7777
+      type: 'test'
+      ...
+    # Subtest: paket gabungan ekspresi + viseme mengaktifkan emosi dan jadwal viseme bersamaan
+    ok 3 - paket gabungan ekspresi + viseme mengaktifkan emosi dan jadwal viseme bersamaan
+      ---
+      duration_ms: 77.0952
+      type: 'test'
+      ...
+    1..3
+ok 7 - Connector — post-speech emotion hold & interupsi
+  ---
+  duration_ms: 389.4748
+  type: 'suite'
+  ...
+# Subtest: Connector — live calibration lead offset viseme
+    # Subtest: controller menyediakan leadOffset dan fungsi kalibrasi clamped 0-200ms
+    ok 1 - controller menyediakan leadOffset dan fungsi kalibrasi clamped 0-200ms
+      ---
+      duration_ms: 0.3952
+      type: 'test'
+      ...
+    # Subtest: leadOffset memajukan eksekusi jadwal viseme sesuai offsetMs
+    ok 2 - leadOffset memajukan eksekusi jadwal viseme sesuai offsetMs
+      ---
+      duration_ms: 75.5524
+      type: 'test'
+      ...
+    # Subtest: leadOffset mempercepat initial opening mulut di mode fallback
+    ok 3 - leadOffset mempercepat initial opening mulut di mode fallback
+      ---
+      duration_ms: 62.0651
+      type: 'test'
+      ...
+    1..3
+ok 8 - Connector — live calibration lead offset viseme
+  ---
+  duration_ms: 138.377
+  type: 'suite'
+  ...
+# [2026-11-25T10:38:02.242Z] [Mode] Mode berganti dari dinamis ke statis
+# [Mode] Pesan gaze dibuang karena aplikasi dalam mode statis (AC-17.4).
+# [2026-11-25T10:38:02.246Z] [Mode] Mode berganti dari statis ke dinamis
+# Subtest: CV gaze accepts only two fields and preserves every finite coordinate
+ok 9 - CV gaze accepts only two fields and preserves every finite coordinate
+  ---
+  duration_ms: 3.588
+  type: 'test'
+  ...
+# Subtest: gaze eases and retargets continuously without accumulating or restarting duplicates
+ok 10 - gaze eases and retargets continuously without accumulating or restarting duplicates
+  ---
+  duration_ms: 3.4292
+  type: 'test'
+  ...
+# Subtest: GUI clamps extreme gaze and does not restart movement for the same effective target
+ok 11 - GUI clamps extreme gaze and does not restart movement for the same effective target
+  ---
+  duration_ms: 0.4219
+  type: 'test'
+  ...
+# Subtest: GUI clamps finite CV input to [-1, 1] without sensitivity amplification
+ok 12 - GUI clamps finite CV input to [-1, 1] without sensitivity amplification
+  ---
+  duration_ms: 0.5565
+  type: 'test'
+  ...
+# Subtest: camera mirroring flips both gaze directions once and can be disabled
+ok 13 - camera mirroring flips both gaze directions once and can be disabled
+  ---
+  duration_ms: 0.3219
+  type: 'test'
+  ...
+# Subtest: gaze preserves eye coordinates and blink transforms; cry/timeout store the latest target
+ok 14 - gaze preserves eye coordinates and blink transforms; cry/timeout store the latest target
+  ---
+  duration_ms: 0.4641
+  type: 'test'
+  ...
+# Subtest: mode switches reset gaze immediately and static messages are never queued
+ok 15 - mode switches reset gaze immediately and static messages are never queued
+  ---
+  duration_ms: 4.8824
+  type: 'test'
+  ...
+# Subtest: gaze cannot alter expression/viseme timing or speech queues in bawaan
+ok 16 - gaze cannot alter expression/viseme timing or speech queues in bawaan
+  ---
+  duration_ms: 4.26
+  type: 'test'
+  ...
+# Subtest: gaze cannot alter expression/viseme timing or speech queues in streaming
+ok 17 - gaze cannot alter expression/viseme timing or speech queues in streaming
+  ---
+  duration_ms: 2.6728
+  type: 'test'
+  ...
+# Subtest: gaze cannot alter expression/viseme timing or speech queues in fallback
+ok 18 - gaze cannot alter expression/viseme timing or speech queues in fallback
+  ---
+  duration_ms: 1.1322
+  type: 'test'
+  ...
+# Subtest: per-expression EOR contains every enabled pose throughout a dense horizontal sweep and blink
+ok 19 - per-expression EOR contains every enabled pose throughout a dense horizontal sweep and blink
+  ---
+  duration_ms: 6.9528
+  type: 'test'
+  ...
+# Subtest: geometry scales with the face and cannot be bypassed by legacy maxOffsetX
+ok 20 - geometry scales with the face and cannot be bypassed by legacy maxOffsetX
+  ---
+  duration_ms: 1.0766
+  type: 'test'
+  ...
+# Subtest: invalid geometry fails closed and rounded face corners restrict motion
+ok 21 - invalid geometry fails closed and rounded face corners restrict motion
+  ---
+  duration_ms: 1.243
+  type: 'test'
+  ...
+# Subtest: cry entry centers during closing before overlays, then resumes the latest target
+ok 22 - cry entry centers during closing before overlays, then resumes the latest target
+  ---
+  duration_ms: 0.6798
+  type: 'test'
+  ...
+# Subtest: menangis entry centers during closing before overlays, then resumes the latest target
+ok 23 - menangis entry centers during closing before overlays, then resumes the latest target
+  ---
+  duration_ms: 0.2622
+  type: 'test'
+  ...
+# Subtest: timeout entry centers during closing before overlays, then resumes the latest target
+ok 24 - timeout entry centers during closing before overlays, then resumes the latest target
+  ---
+  duration_ms: 0.2761
+  type: 'test'
+  ...
+# Subtest: timeout rotated rectangles remain within the rounded face at every sampled angle
+ok 25 - timeout rotated rectangles remain within the rounded face at every sampled angle
+  ---
+  duration_ms: 2.2221
+  type: 'test'
+  ...
+# Subtest: calibration ratio increases visibility but cannot bypass geometric or anchor bounds
+ok 26 - calibration ratio increases visibility but cannot bypass geometric or anchor bounds
+  ---
+  duration_ms: 0.8512
+  type: 'test'
+  ...
+# Subtest: ordinary expression change centers at swap then uses the new pose range without rescaling jumps
+ok 27 - ordinary expression change centers at swap then uses the new pose range without rescaling jumps
+  ---
+  duration_ms: 1.0823
+  type: 'test'
+  ...
+# Subtest: lerp correctly calculates linear interpolation
+ok 28 - lerp correctly calculates linear interpolation
+  ---
+  duration_ms: 1.5848
+  type: 'test'
+  ...
+# Subtest: Interpolator transitions smoothly between states
+ok 29 - Interpolator transitions smoothly between states
+  ---
+  duration_ms: 1.4545
+  type: 'test'
+  ...
+# [2026-11-25T10:38:02.243Z] [Mode] Mode berganti dari dinamis ke statis
+# [2026-11-25T10:38:02.246Z] [Mode] Mode berganti dari statis ke dinamis
+# [Mode] Mode statis dinonaktifkan di konfigurasi (mode_statis_aktif: false).
+# [2026-11-25T10:38:02.246Z] [Mode] Mode berganti dari dinamis ke statis
+# [2026-11-25T10:38:02.246Z] [Mode] Mode berganti dari statis ke dinamis
+# [Mode] Pesan ekspresi dibuang karena aplikasi dalam mode statis (AC-17.4).
+# Subtest: F4 cycles viseme sources in dynamic mode without switching to static
+ok 30 - F4 cycles viseme sources in dynamic mode without switching to static
+  ---
+  duration_ms: 2.1093
+  type: 'test'
+  ...
+# Subtest: viseme shortcut follows keymap and ignores manual expression keys in dynamic mode
+ok 31 - viseme shortcut follows keymap and ignores manual expression keys in dynamic mode
+  ---
+  duration_ms: 1.0972
+  type: 'test'
+  ...
+# Subtest: viseme lead offset adjustment shortcuts ([ and ]) work in dynamic and static modes
+ok 32 - viseme lead offset adjustment shortcuts ([ and ]) work in dynamic and static modes
+  ---
+  duration_ms: 0.4177
+  type: 'test'
+  ...
+# Subtest: ModeManager defaults to dynamic mode
+ok 33 - ModeManager defaults to dynamic mode
+  ---
+  duration_ms: 0.2352
+  type: 'test'
+  ...
+# Subtest: ModeManager switches modes correctly and resets state on dynamic return
+ok 34 - ModeManager switches modes correctly and resets state on dynamic return
+  ---
+  duration_ms: 2.9641
+  type: 'test'
+  ...
+# Subtest: ModeManager prevents switching to static if mode_statis_aktif is false (AC-16.5)
+ok 35 - ModeManager prevents switching to static if mode_statis_aktif is false (AC-16.5)
+  ---
+  duration_ms: 0.3054
+  type: 'test'
+  ...
+# Subtest: ModeManager F2 keydown triggers immediate mode switch without password
+ok 36 - ModeManager F2 keydown triggers immediate mode switch without password
+  ---
+  duration_ms: 0.3277
+  type: 'test'
+  ...
+# Subtest: ModeManager verifyPassword always returns success (password disabled)
+ok 37 - ModeManager verifyPassword always returns success (password disabled)
+  ---
+  duration_ms: 0.1755
+  type: 'test'
+  ...
+# Subtest: ModeManager discards incoming messages during static mode (AC-17.4)
+ok 38 - ModeManager discards incoming messages during static mode (AC-17.4)
+  ---
+  duration_ms: 0.2555
+  type: 'test'
+  ...
+# Subtest: ModeManager triggers visemes in static mode (A, I, U, E, O, REST, DIAM)
+ok 39 - ModeManager triggers visemes in static mode (A, I, U, E, O, REST, DIAM)
+  ---
+  duration_ms: 0.4102
+  type: 'test'
+  ...
+# Subtest: contours match winding and start instead of twisting between shapes
+ok 40 - contours match winding and start instead of twisting between shapes
+  ---
+  duration_ms: 2.4133
+  type: 'test'
+  ...
+# Subtest: mouth morph keeps intermediate geometry when interrupted and restores image at completion
+ok 41 - mouth morph keeps intermediate geometry when interrupted and restores image at completion
+  ---
+  duration_ms: 2.6739
+  type: 'test'
+  ...
+# Subtest: Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)
+    # Subtest: Renderer menginisialisasi ekspresi awal tanpa animasi transisi
+    ok 1 - Renderer menginisialisasi ekspresi awal tanpa animasi transisi
+      ---
+      duration_ms: 2.6041
+      type: 'test'
+      ...
+    # Subtest: streaming mouth remains independent during the eye emotion transition
+    ok 2 - streaming mouth remains independent during the eye emotion transition
+      ---
+      duration_ms: 1.3877
+      type: 'test'
+      ...
+    # Subtest: Transisi fallback langsung memperbarui asset saat anime.js tidak tersedia
+    ok 3 - Transisi fallback langsung memperbarui asset saat anime.js tidak tersedia
+      ---
+      duration_ms: 0.7592
+      type: 'test'
+      ...
+    # Subtest: Memanfaatkan kedipan dan mulut datar (P,B,M) saat berganti ekspresi
+    ok 4 - Memanfaatkan kedipan dan mulut datar (P,B,M) saat berganti ekspresi
+      ---
+      duration_ms: 375.1879
+      type: 'test'
+      ...
+    # Subtest: Mode statis memicu transisi yang sama saat berganti ekspresi
+    ok 5 - Mode statis memicu transisi yang sama saat berganti ekspresi
+      ---
+      duration_ms: 1.3099
+      type: 'test'
+      ...
+    # Subtest: Ekspresi timeout terpasang dengan aset mata spiral dan mulut bergelombang
+    ok 6 - Ekspresi timeout terpasang dengan aset mata spiral dan mulut bergelombang
+      ---
+      duration_ms: 0.6825
+      type: 'test'
+      ...
+    # Subtest: Dalam ekspresi timeout, kedip acak dinonaktifkan dan mata spiral berputar
+    ok 7 - Dalam ekspresi timeout, kedip acak dinonaktifkan dan mata spiral berputar
+      ---
+      duration_ms: 1.297
+      type: 'test'
+      ...
+    1..7
+ok 42 - Transisi Pergantian Ekspresi Wajah (Kedip & Mulut Datar)
+  ---
+  duration_ms: 384.7491
+  type: 'suite'
+  ...
+# Subtest: visemeAt returns DIAM when schedule is empty
+ok 43 - visemeAt returns DIAM when schedule is empty
+  ---
+  duration_ms: 1.0456
+  type: 'test'
+  ...
+# Subtest: visemeAt picks the active viseme based on timestamp
+ok 44 - visemeAt picks the active viseme based on timestamp
+  ---
+  duration_ms: 0.2152
+  type: 'test'
+  ...
+# Subtest: visemeAt handles new dynamic visemes (REST, I, U, E)
+ok 45 - visemeAt handles new dynamic visemes (REST, I, U, E)
+  ---
+  duration_ms: 0.2211
+  type: 'test'
+  ...
+# Subtest: combined packets queue face state and scale visemes to each audio duration
+ok 46 - combined packets queue face state and scale visemes to each audio duration
+  ---
+  duration_ms: 4.0609
+  type: 'test'
+  ...
+# Subtest: long combined sentences outlast watchdog and explicit end cancels their queue
+ok 47 - long combined sentences outlast watchdog and explicit end cancels their queue
+  ---
+  duration_ms: 0.7147
+  type: 'test'
+  ...
+# Subtest: invalid combined packets cannot change face state or interrupt queued audio
+ok 48 - invalid combined packets cannot change face state or interrupt queued audio
+  ---
+  duration_ms: 0.5995
+  type: 'test'
+  ...
+# Subtest: unsupported sentence text keeps the face state for its duration and mode switches cancel it
+ok 49 - unsupported sentence text keeps the face state for its duration and mode switches cancel it
+  ---
+  duration_ms: 1.2376
+  type: 'test'
+  ...
+# Subtest: streaming preempts word timers, rests in gaps, and obeys the original master deadline
+ok 50 - streaming preempts word timers, rests in gaps, and obeys the original master deadline
+  ---
+  duration_ms: 0.8178
+  type: 'test'
+  ...
+# Subtest: silence timeout works without duration, can resume during hold, and hard watchdog ends speech
+ok 51 - silence timeout works without duration, can resume during hold, and hard watchdog ends speech
+  ---
+  duration_ms: 0.7057
+  type: 'test'
+  ...
+# Subtest: explicit modes are exclusive; switching and static mode cancel speech timers
+ok 52 - explicit modes are exclusive; switching and static mode cancel speech timers
+  ---
+  duration_ms: 0.7135
+  type: 'test'
+  ...
+# Subtest: inactive-source and invalid messages cannot cancel emotion hold
+ok 53 - inactive-source and invalid messages cannot cancel emotion hold
+  ---
+  duration_ms: 0.3352
+  type: 'test'
+  ...
+# Subtest: duplicate expression delivery cannot restart the master deadline
+ok 54 - duplicate expression delivery cannot restart the master deadline
+  ---
+  duration_ms: 0.3991
+  type: 'test'
+  ...
+# Subtest: sentences preserve word order and punctuation, and reject invalid text
+ok 55 - sentences preserve word order and punctuation, and reject invalid text
+  ---
+  duration_ms: 2.4577
+  type: 'test'
+  ...
+# Subtest: PBM shares each syllable budget, including onset plus coda
+ok 56 - PBM shares each syllable budget, including onset plus coda
+  ---
+  duration_ms: 0.1879
+  type: 'test'
+  ...
+# Subtest: repeated vowels extend without false closures and punctuation adds REST
+ok 57 - repeated vowels extend without false closures and punctuation adds REST
+  ---
+  duration_ms: 0.1625
+  type: 'test'
+  ...
+# Subtest: only 2-5 full capitals use Indonesian letter names
+ok 58 - only 2-5 full capitals use Indonesian letter names
+  ---
+  duration_ms: 0.1674
+  type: 'test'
+  ...
+# Subtest: invalid tokens do not animate and calibration remains configurable
+ok 59 - invalid tokens do not animate and calibration remains configurable
+  ---
+  duration_ms: 0.1443
+  type: 'test'
+  ...
+1..59
+# tests 75
+# suites 7
+# pass 75
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7128.9345

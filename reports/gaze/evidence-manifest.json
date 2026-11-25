@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-25",
+  "codeSha256": {
+    "src/js/gaze.js": "09002851c912e8ae3bcf93b39f3e89c5ac629dfc9da8a0f9a48a10349da8f450",
+    "src/js/state.js": "a6c7122683d5b95234c5081d1ac94fc7cb4f1ee0e879937a5fd2e67b869776d3",
+    "src/js/renderer.js": "da0a5e1d8ab4e92f8a75ac2bb9124a2939d59c6150f50f4e51a58a93f7813d4b",
+    "src/js/main.js": "29bb130793706367d51ea5eab050ed6183093a146e4ec4cce6bc33c07125b521",
+    "src/index.html": "664b5b72fd86cc6174f98ef804efb2db75374932eae628953cc709d673658144",
+    "src/config/config.json": "b92e371c59c5254b7d292d270c822d746aa5032a8f524f5f8215a2cc4b1c9cd6",
+    "tests/fe/gaze.test.js": "3d57076ead7e42baaadbe77f802cbd7830117ab51cf463ee990a66579f71786a",
+    "scripts/verify-gaze.mjs": "cfacff28dd1f199314b928189034f43479a6a68bed0270fd6aff17e499d54e16"
+  },
+  "referenceFiles": [
+    {
+      "name": "sensors-22-04282-v2 (1).pdf",
+      "pdfPages": [
+        7,
+        8,
+        20
+      ],
+      "sha256": "49c3017a9b0c65f9d02e29d331fb6123bac57b168ab459b06a6ddb5ce43a5b0b"
+    },
+    {
+      "name": "Enhancing social robot s direct gaze expression through vestibulo-ocular movements.pdf",
+      "pdfPages": [
+        6,
+        7
+      ],
+      "sha256": "34a21cf2e5282fdcb6469ea4a8fb22c7bd354d2b54eb5d0316a9140f71f2eb1c"
+    },
+    {
+      "name": "vazquez_thesis.pdf",
+      "pdfPages": [
+        64,
+        92
+      ],
+      "sha256": "cb03fb97fd578379f28e2b31098e1aa3a8b0e41c5f6a5691e650d80bae59d9cc"
+    }
+  ],
+  "revision": "per-expression-calibrated-range"
+}

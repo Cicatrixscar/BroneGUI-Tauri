@@ -1,5 +1,6 @@
 // Renderer SVG berbasis DOM & anime.js sesuai F-01, F-04, F-09, dan F-15 (800x480).
 import { MouthMorph } from './mouthMorph.js';
+import { isGazeSuspended, measureGazeGeometry } from './gaze.js';
 
 export class Renderer {
   constructor(svgElement, state, blinkController, config) {
@@ -10,6 +11,9 @@ export class Renderer {
 
     this.baseWidth = config.canvas?.baseWidth ?? 800;
     this.baseHeight = config.canvas?.baseHeight ?? 480;
+    this.gazeGeometry = measureGazeGeometry(config);
+    this.gazeClosingAt = null;
+    this.gazeClosingDuration = 0;
 
     // Elemen DOM SVG
     this.backsideGroup = this.svg.querySelector('#layer-backside');
@@ -186,34 +190,42 @@ export class Renderer {
     }
   }
 
-  updateGaze(timestamp) {
+  updateGaze(timestamp, ignoreSuspension = false) {
     if (!this.eyeLayer) return;
     const resetVersion = this.state?.gazeResetVersion ?? 0;
-    const suspended = [this.currentEmotion, this.targetEmotion, this.state?.emosi]
-      .some(emosi => ['cry', 'menangis', 'timeout'].includes(emosi));
-    if (suspended || resetVersion !== this.gazeResetVersion) {
+    const suspended = !ignoreSuspension && [this.currentEmotion, this.targetEmotion, this.state?.emosi]
+      .some(isGazeSuspended);
+    const closing = this.gazeClosingAt !== null;
+    const pose = this.gazeGeometry.poses[this.renderedEyeEmotion];
+    const maxOffsetX = this.gazeGeometry.valid && pose ? pose.maxOffsetX : 0;
+    if ((!closing && suspended) || !this.gazeGeometry.valid || resetVersion !== this.gazeResetVersion) {
       this.gazeCurrent = this.gazeFrom = this.gazeTarget = 0;
       this.gazeStartedAt = timestamp;
       this.gazeResetVersion = resetVersion;
     }
 
     const duration = this.config.gaze?.durationMs;
-    const durationMs = Number.isFinite(duration) && duration >= 0 ? duration : 150;
+    const durationMs = closing ? this.gazeClosingDuration :
+      Number.isFinite(duration) && duration >= 0 ? duration : 150;
     const progress = durationMs === 0 ? 1 : Math.min(1, Math.max(0,
       (timestamp - this.gazeStartedAt) / durationMs));
     const eased = 1 - (1 - progress) ** 2;
     this.gazeCurrent = this.gazeFrom + (this.gazeTarget - this.gazeFrom) * eased;
 
-    const target = suspended ? 0 : this.state?.gazeX ?? 0;
+    const requested = this.state?.gazeX;
+    // Interpolasi di satuan SVG agar pergantian rentang tidak mengalikan posisi lama.
+    const target = closing || suspended || !Number.isFinite(requested) ? 0 :
+      Math.max(-1, Math.min(1, requested)) * maxOffsetX;
     if (target !== this.gazeTarget) {
       this.gazeFrom = this.gazeCurrent;
       this.gazeTarget = target;
       this.gazeStartedAt = timestamp;
     }
     if (durationMs === 0) this.gazeCurrent = target;
-    const limit = this.config.gaze?.maxOffsetX;
-    const maxOffsetX = Number.isFinite(limit) && limit >= 0 ? limit : 20;
-    this.eyeLayer.setAttribute('transform', `translate(${this.gazeCurrent * maxOffsetX} 0)`);
+    const offset = Math.max(-maxOffsetX, Math.min(maxOffsetX, this.gazeCurrent));
+    this.gazeCurrent = offset;
+    const transform = `translate(${offset} 0)`;
+    if (this.eyeLayer.getAttribute('transform') !== transform) this.eyeLayer.setAttribute('transform', transform);
   }
 
   triggerBlinkAnimation() {
@@ -289,6 +301,18 @@ export class Renderer {
    * 3. Ketika mata terbuka kembali, ekspresi baru sudah aktif sepenuhnya.
    */
   transitionToEmotion(targetEmotion) {
+    // Ambil posisi sekarang sebelum penutupan; target CV tetap disimpan di FaceState.
+    if (window.anime) {
+      const now = performance.now();
+      this.updateGaze(now, true);
+      this.gazeFrom = this.gazeCurrent;
+      this.gazeTarget = 0;
+      this.gazeStartedAt = now;
+      this.gazeClosingAt = now;
+      this.gazeClosingDuration = Math.round((this.config.blink?.durationMs ?? 350) / 2);
+    } else {
+      this.gazeClosingAt = null;
+    }
     const streamMouth = this.state?.visemeMode === 'streaming';
     if (!streamMouth) this.mouthMorph.cancel();
     if (!window.anime) {
@@ -349,6 +373,11 @@ export class Renderer {
     // 3. TITIK TENGAH (t = half, ~175ms): Mata tertutup rapat, mulut datar
     // Saat mata terpejam di dalam kedipan: Ganti mata & mulut ke ekspresi target!
     const timer2 = setTimeout(() => {
+      // Semua pergantian aset terjadi di offset nol, sebelum profil baru dipakai.
+      this.gazeClosingAt = null;
+      this.gazeCurrent = this.gazeFrom = this.gazeTarget = 0;
+      this.gazeStartedAt = performance.now();
+      this.eyeLayer?.setAttribute('transform', 'translate(0 0)');
       // Bersihkan overlay emosi lama (air mata, blush, simbol) DULU sebelum update mata
       this.clearEmotionOverlays();
 
@@ -395,6 +424,20 @@ export class Renderer {
   updateEyes(emosi) {
     const exprData = this.config.expressions?.[emosi] || this.config.expressions?.netral;
     if (!exprData) return;
+    this.renderedEyeEmotion = this.config.expressions?.[emosi] ? emosi : 'netral';
+    // Timeout berotasi: jangan potong spiral pada rectangle pose sebelum rotasi.
+    for (const [wrap, clip] of [[this.eyeLWrap, 'eye-l-clip'], [this.eyeRWrap, 'eye-r-clip']]) {
+      wrap?.setAttribute('clip-path', emosi === 'timeout' ? 'none' : `url(#${clip})`);
+    }
+    for (const [side, id] of [['eyeL', '#eye-l-bounds'], ['eyeR', '#eye-r-bounds']]) {
+      const bounds = this.svg.querySelector(id);
+      const eye = exprData[side];
+      if (bounds && eye) {
+        for (const [attr, key] of [['x', 'x'], ['y', 'y'], ['width', 'w'], ['height', 'h']]) {
+          bounds.setAttribute(attr, eye[key]);
+        }
+      }
+    }
 
     // 1. Update Mata Kiri
     if (this.eyeL && exprData.eyeL) {

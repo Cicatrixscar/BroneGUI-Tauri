@@ -169,8 +169,8 @@
   },
   "gaze": {
     "invertX": true,
-    "sensitivity": 4,
-    "maxOffsetX": 20,
+    "faceCornerRadius": 40,
+    "amplitudeRatio": 0.155,
     "durationMs": 150
   },
   "bicara": {
