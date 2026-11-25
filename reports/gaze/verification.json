@@ -1,12 +1,292 @@
 {
+  "geometry": {
+    "valid": true,
+    "reason": null,
+    "maxOffsetX": 24.18,
+    "amplitudeRatio": 0.155,
+    "poses": {
+      "idle": {
+        "lower": -64.5,
+        "upper": 64.5,
+        "width": 129,
+        "geometricMax": 64.5,
+        "maxOffsetX": 19.995,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 50.5,
+            "right": 308.5
+          },
+          "eyeR": {
+            "left": 491.5,
+            "right": 749.5
+          }
+        }
+      },
+      "happy": {
+        "lower": -64.5,
+        "upper": 64.5,
+        "width": 129,
+        "geometricMax": 64.5,
+        "maxOffsetX": 19.995,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 50.5,
+            "right": 308.5
+          },
+          "eyeR": {
+            "left": 491.5,
+            "right": 749.5
+          }
+        }
+      },
+      "happier": {
+        "lower": -61.5,
+        "upper": 61.5,
+        "width": 123,
+        "geometricMax": 61.5,
+        "maxOffsetX": 19.065,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 44.5,
+            "right": 290.5
+          },
+          "eyeR": {
+            "left": 513.5,
+            "right": 759.5
+          }
+        }
+      },
+      "sad": {
+        "lower": -71,
+        "upper": 71,
+        "width": 142,
+        "geometricMax": 71,
+        "maxOffsetX": 22.01,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 35,
+            "right": 319
+          },
+          "eyeR": {
+            "left": 481,
+            "right": 765
+          }
+        }
+      },
+      "shock": {
+        "lower": -64.5,
+        "upper": 64.5,
+        "width": 129,
+        "geometricMax": 64.5,
+        "maxOffsetX": 19.995,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 50.5,
+            "right": 308.5
+          },
+          "eyeR": {
+            "left": 491.5,
+            "right": 749.5
+          }
+        }
+      },
+      "confused": {
+        "lower": -64.5,
+        "upper": 64.5,
+        "width": 129,
+        "geometricMax": 64.5,
+        "maxOffsetX": 19.995,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 32,
+            "right": 316
+          },
+          "eyeR": {
+            "left": 491.5,
+            "right": 749.5
+          }
+        }
+      },
+      "happier_transisi": {
+        "lower": -78,
+        "upper": 77.99999999999997,
+        "width": 156,
+        "geometricMax": 77.99999999999997,
+        "maxOffsetX": 24.18,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 17.400000000000006,
+            "right": 329.4
+          },
+          "eyeR": {
+            "left": 471,
+            "right": 783
+          }
+        }
+      },
+      "netral": {
+        "lower": -64.5,
+        "upper": 64.5,
+        "width": 129,
+        "geometricMax": 64.5,
+        "maxOffsetX": 19.995,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 50.5,
+            "right": 308.5
+          },
+          "eyeR": {
+            "left": 491.5,
+            "right": 749.5
+          }
+        }
+      },
+      "senang": {
+        "lower": -64.5,
+        "upper": 64.5,
+        "width": 129,
+        "geometricMax": 64.5,
+        "maxOffsetX": 19.995,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 50.5,
+            "right": 308.5
+          },
+          "eyeR": {
+            "left": 491.5,
+            "right": 749.5
+          }
+        }
+      },
+      "sangat_senang": {
+        "lower": -61.5,
+        "upper": 61.5,
+        "width": 123,
+        "geometricMax": 61.5,
+        "maxOffsetX": 19.065,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 44.5,
+            "right": 290.5
+          },
+          "eyeR": {
+            "left": 513.5,
+            "right": 759.5
+          }
+        }
+      },
+      "sedih": {
+        "lower": -71,
+        "upper": 71,
+        "width": 142,
+        "geometricMax": 71,
+        "maxOffsetX": 22.01,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 35,
+            "right": 319
+          },
+          "eyeR": {
+            "left": 481,
+            "right": 765
+          }
+        }
+      },
+      "terkejut": {
+        "lower": -64.5,
+        "upper": 64.5,
+        "width": 129,
+        "geometricMax": 64.5,
+        "maxOffsetX": 19.995,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 50.5,
+            "right": 308.5
+          },
+          "eyeR": {
+            "left": 491.5,
+            "right": 749.5
+          }
+        }
+      },
+      "berpikir": {
+        "lower": -64.5,
+        "upper": 64.5,
+        "width": 129,
+        "geometricMax": 64.5,
+        "maxOffsetX": 19.995,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 32,
+            "right": 316
+          },
+          "eyeR": {
+            "left": 491.5,
+            "right": 749.5
+          }
+        }
+      },
+      "thinking": {
+        "lower": -64.5,
+        "upper": 64.5,
+        "width": 129,
+        "geometricMax": 64.5,
+        "maxOffsetX": 19.995,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 32,
+            "right": 316
+          },
+          "eyeR": {
+            "left": 491.5,
+            "right": 749.5
+          }
+        }
+      },
+      "sangat_senang_transisi": {
+        "lower": -78,
+        "upper": 77.99999999999997,
+        "width": 156,
+        "geometricMax": 77.99999999999997,
+        "maxOffsetX": 24.18,
+        "maxEyeFraction": 0.155,
+        "regions": {
+          "eyeL": {
+            "left": 17.400000000000006,
+            "right": 329.4
+          },
+          "eyeR": {
+            "left": 471,
+            "right": 783
+          }
+        }
+      }
+    }
+  },
   "center": {
     "transform": "translate(0 0)",
     "left": {
+      "asset": "assets/MATA.svg",
       "baseX": 115,
       "y": 154,
       "screenX": 115
     },
     "right": {
+      "asset": "assets/MATA.svg",
       "baseX": 556,
       "y": 154,
       "screenX": 556
@@ -14,92 +294,205 @@
     "mouth": "assets/IDLE.svg"
   },
   "left": {
-    "transform": "translate(-40 0)",
+    "transform": "translate(-19.995 0)",
     "left": {
+      "asset": "assets/MATA.svg",
       "baseX": 115,
       "y": 154,
-      "screenX": 75
+      "screenX": 95.0049991607666
     },
     "right": {
+      "asset": "assets/MATA.svg",
       "baseX": 556,
       "y": 154,
-      "screenX": 516
+      "screenX": 536.0049991607666
     },
     "mouth": "assets/IDLE.svg"
   },
   "right": {
-    "transform": "translate(40 0)",
+    "transform": "translate(19.995 0)",
     "left": {
+      "asset": "assets/MATA.svg",
       "baseX": 115,
       "y": 154,
-      "screenX": 155
+      "screenX": 134.9950008392334
     },
     "right": {
+      "asset": "assets/MATA.svg",
       "baseX": 556,
       "y": 154,
-      "screenX": 596
+      "screenX": 575.9950008392334
     },
     "mouth": "assets/IDLE.svg"
   },
   "clamped": [
     {
       "input": -5,
-      "transform": "translate(40 0)"
+      "transform": "translate(19.995 0)"
     },
     {
       "input": 8,
-      "transform": "translate(-40 0)"
+      "transform": "translate(-19.995 0)"
     },
     {
       "input": -1.7976931348623157e+308,
-      "transform": "translate(40 0)"
+      "transform": "translate(19.995 0)"
     },
     {
       "input": 1.7976931348623157e+308,
-      "transform": "translate(-40 0)"
+      "transform": "translate(-19.995 0)"
     },
     {
       "input": 0.2,
-      "transform": "translate(-16 0)"
+      "transform": "translate(-3.9990000000000006 0)"
     },
     {
       "input": 0.4,
-      "transform": "translate(-32 0)"
+      "transform": "translate(-7.998000000000001 0)"
     },
     {
       "input": -0.2,
-      "transform": "translate(16.000000000000007 0)"
+      "transform": "translate(3.9990000000000006 0)"
     },
     {
       "input": -0.4,
-      "transform": "translate(32 0)"
+      "transform": "translate(7.998000000000001 0)"
     },
     {
       "input": 0.5,
-      "transform": "translate(-40 0)"
+      "transform": "translate(-9.997499999999999 0)"
     }
   ],
+  "expressionSweeps": [
+    {
+      "emotion": "idle",
+      "frames": 28,
+      "maxOffset": 19.995,
+      "expectedLimit": 19.995,
+      "leftAsset": "assets/MATA.svg",
+      "rightAsset": "assets/MATA.svg"
+    },
+    {
+      "emotion": "happy",
+      "frames": 28,
+      "maxOffset": 19.995,
+      "expectedLimit": 19.995,
+      "leftAsset": "assets/MATA.svg",
+      "rightAsset": "assets/MATA.svg"
+    },
+    {
+      "emotion": "happier",
+      "frames": 28,
+      "maxOffset": 19.995,
+      "expectedLimit": 19.065,
+      "leftAsset": "assets/HAPPIER EYE.svg",
+      "rightAsset": "assets/HAPPIER EYE.svg"
+    },
+    {
+      "emotion": "happier_transisi",
+      "frames": 28,
+      "maxOffset": 24.18,
+      "expectedLimit": 24.18,
+      "leftAsset": "assets/MATA HAPPIER TRANSITION.svg",
+      "rightAsset": "assets/MATA HAPPIER TRANSITION KANAN.svg"
+    },
+    {
+      "emotion": "sad",
+      "frames": 24,
+      "maxOffset": 24.18,
+      "expectedLimit": 22.01,
+      "leftAsset": "assets/SAD EYE LEFT.svg",
+      "rightAsset": "assets/SAD EYE RIGHT.svg"
+    },
+    {
+      "emotion": "confused",
+      "frames": 27,
+      "maxOffset": 22.01,
+      "expectedLimit": 19.995,
+      "leftAsset": "assets/LOAD EYE.svg",
+      "rightAsset": "assets/MATA.svg"
+    },
+    {
+      "emotion": "shock",
+      "frames": 24,
+      "maxOffset": 19.995,
+      "expectedLimit": 19.995,
+      "leftAsset": "assets/MATA.svg",
+      "rightAsset": "assets/MATA.svg"
+    },
+    {
+      "emotion": "cry",
+      "frames": 28,
+      "maxOffset": 19.995,
+      "expectedLimit": 0,
+      "leftAsset": "assets/CRY EYE LEFT.svg",
+      "rightAsset": "assets/CRY EYE RIGHT.svg"
+    },
+    {
+      "emotion": "timeout",
+      "frames": 28,
+      "maxOffset": 0,
+      "expectedLimit": 0,
+      "leftAsset": "assets/TIMEOUT EYE LEFT.svg",
+      "rightAsset": "assets/TIMEOUT EYE RIGHT.svg"
+    },
+    {
+      "emotion": "idle",
+      "frames": 28,
+      "maxOffset": 13.828639753333444,
+      "expectedLimit": 19.995,
+      "leftAsset": "assets/MATA.svg",
+      "rightAsset": "assets/MATA.svg"
+    }
+  ],
+  "frameProbe": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36 Edg/158.0.0.0",
+    "measurements": [
+      {
+        "active": false,
+        "frames": 120,
+        "transformWrites": 0,
+        "p50FrameMs": 16.700000000000728,
+        "p95FrameMs": 16.700000000000728
+      },
+      {
+        "active": true,
+        "frames": 120,
+        "transformWrites": 117,
+        "p50FrameMs": 16.69999999999709,
+        "p95FrameMs": 16.700000000000728
+      }
+    ]
+  },
   "viewports": [
     {
       "width": 400,
       "height": 240,
-      "leftScreenX": 37.5
+      "leftScreenX": 47.5024995803833
     },
     {
       "width": 1600,
       "height": 960,
-      "leftScreenX": 150
+      "leftScreenX": 190.0099983215332
+    },
+    {
+      "width": 1000,
+      "height": 600,
+      "leftScreenX": 118.75624895095825
     }
   ],
   "verified": [
     "terminal CLI -> HTTP -> SSE -> rendered SVG",
-    "4x sensitivity for CV input +/-0.2 and +/-0.4; target clamped to [-2, 2]",
+    "finite CV input clamped to [-1, 1] without amplification; per-expression amplitude from configurable eye-width ratio, capped by local anchor and rounded face geometry",
     "camera mirroring: positive input moves left, negative input moves right",
     "invalid gaze rejected",
     "observed automatic blink and expression transitions",
     "cry/timeout suppression and resume",
     "static reset",
     "SVG scaling at 400x240 and 1600x960",
-    "streaming sentence and mouth isolation"
+    "streaming sentence and mouth isolation",
+    "real matrices and clipping bounds sampled during canonical expression changes, including timeout rotation",
+    "configured face radius matches backdrop SVG",
+    "120-frame baseline and active-gaze probe; idle transform writes zero"
   ]
 }

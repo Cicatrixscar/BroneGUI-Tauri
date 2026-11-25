@@ -1,5 +1,9 @@
 # Implementasi gaze horizontal
 
+> Arsip implementasi terdahulu. Untuk perilaku aktif 25 November 2026 dan batas geometri yang dihitung otomatis, baca [laporan implementasi berbasis geometri](laporan-implementasi-gaze-berbasis-geometri.md). Semua catatan pembaruan di bawah merupakan riwayat.
+
+> Pembaruan 24 November 2026: catatan di bawah adalah riwayat implementasi sebelumnya. Jalur aktif kini menerima semua X finite dari CV dan melakukan `clamp(x,-1,1)` di GUI, tanpa sensitivitas 4. `maxOffsetX:20` sekarang menghasilkan maksimum ±20 satuan SVG untuk pengujian lokal, belum hasil kalibrasi wilayah aman. Lihat [kontrak aktif](CONTRACT.md#gaze-horizontal-dari-cv) dan [rencana geometri](plan-horizontal-gaze-berbasis-geometri.md). Angka ±40, target ±2, dan klaim pengujian di bawah tidak menggambarkan revisi baru ini.
+
 Status: implementasi tersedia. Jalur terminal HTTP/SSE ke browser sudah diuji; build/test Rust dan MQTT/Tauri langsung belum dijalankan karena toolchain belum tersedia.
 Tanggal: 20 November 2026. Pembaruan sensitivitas: 24 November 2026.
 
@@ -125,7 +129,7 @@ node scripts/send.js gaze 0.5
 
 Jalankan satu per satu untuk mengamati gerak. CLI mengirim format eksternal `type` dan `x` melalui `/api/message`. Jumlah browser penerima dicetak; jika `0`, belum ada browser terhubung. Ini bukan jalur backend Rust/Tauri.
 
-Untuk gerakan kiri-kanan berulang, gunakan script berikut pada terminal kedua:
+Untuk gerakan kiri-kanan berulang, gunakan script berikut pada terminal kedua. Script mengirim `x:2` dan `x:-2` bergantian; dengan `invertX:true`, urutannya kiri lalu kanan:
 
 ```text
 node scripts/test-gaze.mjs

@@ -176,6 +176,12 @@ const DEFAULT_CONFIG = {
     maxIntervalMs: 6000,
     durationMs: 350
   },
+  gaze: {
+    invertX: true,
+    faceCornerRadius: 40,
+    amplitudeRatio: 0.155,
+    durationMs: 150
+  },
   bicara: {
     fallbackMulutAktif: false,
     visemeMode: 'bawaan',
@@ -252,6 +258,7 @@ async function initApp() {
     ? {
         ...baseConfig,
         ...localConfig,
+        gaze: { ...baseConfig.gaze, ...localConfig.gaze },
         bicara: {
           ...baseConfig.bicara,
           ...localConfig.bicara,

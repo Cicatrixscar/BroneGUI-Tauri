@@ -53,10 +53,9 @@ export class FaceState {
 
   setGaze(x) {
     if (!Number.isFinite(x)) return;
-    const configured = this.config.gaze?.sensitivity;
-    const sensitivity = Number.isFinite(configured) && configured > 0 ? configured : 4;
     const direction = this.config.gaze?.invertX === false ? 1 : -1;
-    const target = Math.max(-2, Math.min(2, x * sensitivity * direction));
+    // CV bebas mengirim angka finite; pembatasan rentang dimiliki GUI.
+    const target = Math.max(-1, Math.min(1, x)) * direction;
     if (this.gazeX === target) return;
     this.gazeX = target;
     this.notifyChange();
